@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: 'postgres:latest'
+    image: 'postgres:17'
     container_name: yaku-subscription-db-local
     environment:
       - 'POSTGRES_DB=yaku_subscription'

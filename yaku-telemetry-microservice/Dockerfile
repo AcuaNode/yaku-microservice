@@ -25,6 +25,9 @@ RUN mv target/*.jar target/app.jar
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Install socat for infrastructure port forwarding workaround
+RUN apk add --no-cache socat
+
 # Run under a secure non-root user
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
@@ -34,4 +37,4 @@ COPY --from=build /app/target/app.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "socat TCP-LISTEN:8081,fork,reuseaddr TCP:equipment-service:8080 & socat TCP-LISTEN:8083,fork,reuseaddr TCP:notification-service:8080 & exec java -jar app.jar"]

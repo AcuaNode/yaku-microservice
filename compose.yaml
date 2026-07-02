@@ -35,7 +35,7 @@ services:
   # =========================================================================
 
   equipment-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: yaku-equipment-db
     ports:
       - "5432:5432"
@@ -54,7 +54,7 @@ services:
       - yaku-network
 
   subscription-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: yaku-subscription-db
     ports:
       - "5433:5432"
@@ -73,7 +73,7 @@ services:
       - yaku-network
 
   iam-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: yaku-iam-db
     ports:
       - "5434:5432"
@@ -92,7 +92,7 @@ services:
       - yaku-network
 
   notification-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: yaku-notification-db
     ports:
       - "5435:5432"
@@ -111,7 +111,7 @@ services:
       - yaku-network
 
   telemetry-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: yaku-telemetry-db
     ports:
       - "5436:5432"
