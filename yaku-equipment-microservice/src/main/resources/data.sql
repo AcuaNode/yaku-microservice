@@ -1,0 +1,2 @@
+-- Equipment service data initialization
+-- No equipment-specific seeds required for now

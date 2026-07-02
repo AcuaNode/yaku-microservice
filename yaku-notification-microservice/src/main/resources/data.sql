@@ -1,0 +1,2 @@
+-- Equipment service data initialization
+-- No notification-specific seeds required for now

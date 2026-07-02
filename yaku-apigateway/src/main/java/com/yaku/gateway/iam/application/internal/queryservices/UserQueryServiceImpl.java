@@ -1,0 +1,84 @@
+package com.yaku.gateway.iam.application.internal.queryservices;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.yaku.gateway.iam.domain.model.aggregates.User;
+import com.yaku.gateway.iam.domain.model.queries.GetAllUsersQuery;
+import com.yaku.gateway.iam.domain.model.queries.GetUserByIdQuery;
+import com.yaku.gateway.iam.domain.model.queries.GetUserByUsernameQuery;
+import com.yaku.gateway.iam.domain.model.queries.GetUsersByFarmIdQuery;
+import com.yaku.gateway.iam.domain.services.UserQueryService;
+import com.yaku.gateway.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
+import com.yaku.gateway.iam.infrastructure.persistence.jpa.repositories.UserRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * User Query Service Implementation
+ * <p>
+ * This service handles query-based (read-only) operations for the User aggregate.
+ * It implements the UserQueryService interface and provides business logic
+ * for user retrieval operations.
+ * </p>
+ */
+@Service
+@Transactional(readOnly = true)
+public class UserQueryServiceImpl implements UserQueryService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserQueryServiceImpl.class);
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+
+    public UserQueryServiceImpl(UserRepository userRepository, RoleRepository roleRepository) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+    }
+
+    @Override
+    public Optional<User> handle(GetUserByUsernameQuery query) {
+        LOGGER.debug("Processing GetUserByUsernameQuery for username: {}", query.username());
+        
+        Optional<User> user = userRepository.findByUsername(query.username());
+        
+        if (user.isPresent()) {
+            LOGGER.debug("User found with ID: {}", user.get().getId());
+        } else {
+            LOGGER.debug("No user found with username: {}", query.username());
+        }
+        
+        return user;
+    }
+
+    @Override
+    public Optional<User> handle(GetUserByIdQuery query) {
+        LOGGER.debug("Processing GetUserByIdQuery for ID: {}", query.id());
+        return userRepository.findById(query.id());
+    }
+
+    @Override
+    public List<User> handle(GetAllUsersQuery query) {
+        LOGGER.debug("Processing GetAllUsersQuery");
+        
+        List<User> users = userRepository.findAll();
+        
+        LOGGER.debug("Retrieved {} users", users.size());
+        
+        return users;
+    }
+
+    @Override
+    public List<User> handle(GetUsersByFarmIdQuery query) {
+        LOGGER.debug("Processing GetUsersByFarmIdQuery for farm ID: {}", query.farmId());
+        
+        List<User> users = userRepository.findAllByAssignedFarmId(query.farmId());
+        
+        LOGGER.debug("Retrieved {} users for farm ID: {}", users.size(), query.farmId());
+        
+        return users;
+    }
+}

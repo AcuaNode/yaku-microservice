@@ -1,0 +1,228 @@
+# ROADMAP — Extracción del Microservicio equipment-service
+
+## Rol del Agente
+Eres un Ingeniero de Software Senior experto en Java 17+, Spring Boot 3.x, Domain-Driven Design (DDD), CQRS, Clean Architecture y refactorización de Monolitos a Microservicios. Tu objetivo es guiar paso a paso y generar código seguro para extraer el Bounded Context de `equipment` del monolito YakuControl.
+
+## Contexto del Proyecto: YakuControl (Acuicultura IoT)
+El bounded context de `equipment` gestiona la infraestructura física de las piscigranjas:
+- **Farm** (Granja/Empresa): Representa a la empresa dueña de las pozas. Asociada a un `ownerId` (propietario).
+- **Pond** (Poza de crianza): Pertenece a una Farm. Tiene un estado (`PondStatus`).
+- **Equipment** (Dispositivos/Sensores): Equipamiento IoT (sensores de oxígeno, temperatura, etc.) vinculados físicamente a un Pond.
+
+### Jerarquía de Agregados (Importante)
+```
+Owner → Farm → Pond → Equipment
+```
+Equipment pertenece transitivamente a un Owner a través de la cadena Farm → Pond. **No añadir** `@RequestHeader("X-User-Id")` directamente a los endpoints de `EquipmentController`. La validación de propiedad se realiza en la capa de servicio verificando que el `pondId`/`farmId` recibido pertenezca al contexto del propietario.
+
+El API Gateway se encarga de la autenticación. Los endpoints internos filtran implícitamente por `pondId` o `farmId` proporcionado por el cliente.
+
+## Estructura de Paquetes en el Monolito (Origen)
+El código de origen se encuentra estructurado bajo patrones rigurosos de Clean Architecture y CQRS:
+- `domain/model/aggregates/` — Entidades raíz (`Farm`, `Pond`, `Equipment`).
+- `domain/model/valueobjects/` — Objetos de valor (`PondStatus`, `EquipmentStatus`, `EquipmentType`).
+- `domain/model/commands/` y `queries/` — Patrón CQRS para escrituras y lecturas.
+- `domain/services/` — Interfaces de servicios de dominio.
+- `application/internal/` — Implementaciones de servicios de comandos y consultas.
+- `infrastructure/` — Repositorios JPA y adapters de infraestructura.
+- `interfaces/rest/` — Controladores REST, recursos (DTOs) y ensambladores (`transform`).
+
+---
+
+## FASES DE TRABAJO (Ejecutar paso a paso)
+
+### ✅ FASE 1: Aislamiento del Pom y Código
+**Objetivo:** Limpiar dependencias y aislar el paquete `equipment`.
+
+**Estado:** ✅ Completa
+
+1. **Eliminar bounded contexts ajenos:** ✅
+   - `iam/`, `telemetry/`, `subscription/`, `notification/` eliminados de src/main, src/test y features.
+   - `shared/` mantenido intacto.
+
+2. **Actualizar `pom.xml`:** ✅
+   - `artifactId` → `equipment-service`.
+   - Eliminadas: spring-boot-starter-security, jjwt-*, spring-boot-starter-integration, spring-integration-mqtt, spring-integration-jpa, spring-modulith-*, spring-integration-test, commons-lang3, junit-jupiter-api explícito.
+   - Lombok preservado en `annotationProcessorPaths`.
+   - `spring-kafka` agregado (preparación para Fase 4).
+
+3. **Eliminar CI del monolito:** ✅
+   - `.github/workflows/develop_yaku-back.yml` eliminado.
+
+4. **Renombrar clase principal:** ✅
+   - `YakuBackendApplication.java` → `EquipmentServiceApplication.java`.
+
+5. **Limpieza de recursos:** ✅
+   - `data.sql` limpiado de seeds IAM y telemetry. Archivo ahora vacío.
+
+---
+
+### ✅ FASE 2: Eliminación de Acoplamiento (Desvincular IAM)
+**Objetivo:** Eliminar toda dependencia con el contexto de autenticación.
+
+**Estado:** ✅ Completa (fusionada con Fase 1 para permitir compilación)
+
+1. **`FarmController.java`:** ✅
+   - Eliminados: `@PreAuthorize`, `Authentication`, `UserDetailsImpl`.
+   - Añadido: `@RequestHeader("X-User-Id") Long ownerId` en `createFarm` y `getAllFarmsByOwner`.
+
+2. **`PondController.java`:** ✅
+   - Eliminadas todas las anotaciones `@PreAuthorize`.
+
+3. **`OpenApiConfiguration.java` (shared):** ✅
+   - Eliminado scheme `bearerAuth` JWT.
+
+4. **`Farm.java` y `CreateFarmCommand`:** ✅
+   - Ya usaban `Long ownerId`. Sin cambios necesarios.
+
+---
+
+### ✅ FASE 3: Configuración de Base de Datos de Desarrollo
+**Objetivo:** Permitir que el microservicio corra localmente con su propia persistencia.
+
+**Estado:** ✅ Completa
+
+1. **Crear `src/main/resources/application-dev.properties`:** ✅
+   ```properties
+   spring.datasource.url=jdbc:postgresql://localhost:5432/yaku_equipment
+   spring.datasource.username=root
+   spring.datasource.password=password
+   spring.jpa.hibernate.ddl-auto=update
+   spring.jpa.show-sql=true
+   debug=true
+   spring.kafka.bootstrap-servers=localhost:9092
+   ```
+   - `application.properties` queda como base de producción (solo app name y documentation config).
+
+2. **`compose.yaml` local:** ✅
+   - Actualizado: `POSTGRES_DB=yaku_equipment`, credenciales `root`/`password`, Kafka KRaft incluido.
+
+---
+
+### ✅ FASE 4: Publicación de Eventos en Kafka (Consistencia Eventual)
+**Objetivo:** Reemplazar los eventos de Spring en memoria por publicaciones de tópicos en Kafka. El microservicio debe ser 100% autónomo para testing local.
+
+**Estado:** ✅ Completa (con nota sobre Paso 5)
+
+**Prerrequisito:** `spring-kafka` ya está en el POM (agregado en Fase 1).
+
+#### Paso 1 — Configuración de Kafka en Compose ✅
+- Servicio `kafka` en `compose.yaml`: imagen `apache/kafka:latest`, KRaft mode, puerto 9092
+- Variables de entorno KRaft: `KAFKA_CFG_PROCESS_ROLES=broker,controller`, `KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@localhost:9093`, `KAFKA_CFG_LISTENERS`, `KAFKA_CFG_LOG_DIRS=/tmp/kraft-combined-logs`, etc.
+- `depends_on: postgres` con healthcheck para arranque en orden
+- `spring.kafka.bootstrap-servers=localhost:9092` en `application-dev.properties`
+
+#### Paso 2 — Crear infraestructura Kafka ✅
+- `KafkaProducerConfig.java`: `ProducerFactory<String, String>` y `KafkaTemplate<String, String>` con `StringSerializer`
+- `KafkaDomainEventPublisher.java`: serializa eventos a JSON con `ObjectMapper` y envía a Kafka
+- Error handling: `RuntimeException("Failed to publish event to Kafka topic: " + topic, e)`
+- `ObjectMapper` proviene de Spring Boot auto-configuración (no custom bean)
+
+#### Paso 3 — Routing de eventos por tópico ✅
+| Evento | Tópico |
+|--------|--------|
+| `SensorLinkedToPondEvent` | `pond-events` |
+| `EquipmentRegistrationRequested` | `equipment-events` |
+| `FishFarmerAssignedEvent` | *(sin publisher — ver nota abajo)* |
+
+#### Paso 4 — Actualizar EquipmentCommandServiceImpl ✅
+- `SpringDomainEventPublisher` → `KafkaDomainEventPublisher`
+- `registerEquipment`: tópico `equipment-events`
+- `linkEquipmentToPond`: tópico `pond-events` para `SensorLinkedToPondEvent`
+- **Fixbug**: `"El plan no permite más agregaciones"` → `"Error publishing equipment registration event"`
+- `SpringDomainEventPublisher.java` eliminado
+
+#### Paso 5 — Actualizar PondCommandServiceImpl ⏭️ **OMITIDO**
+- El roadmap indicaba que `PondCommandServiceImpl` publicaba `FishFarmerAssignedEvent`, pero **no existe tal método**. `PondCommandService` y `PondCommandServiceImpl` no tienen `assignFishFarmer` ni publican este evento.
+- `FishFarmerAssignedEvent` queda como registro huérfano (existe para uso futuro si otro bounded context lo necesita).
+- `FishFarmerAssignedEventListener.java` eliminado correctamente.
+
+#### Paso 6 — Eliminar artefactos de Spring Events ✅
+- `equipment/infrastructure/events/SpringDomainEventPublisher.java` eliminado
+- `equipment/infrastructure/events/FishFarmerAssignedEventListener.java` eliminado
+
+#### Paso 7 — Eliminar archivos Cucumber (fuera de scope) ✅
+- `src/test/resources/features/` eliminado
+
+#### Verificación ✅
+- `./mvnw clean compile` pasa
+- `./mvnw test` pasa (12 tests)
+
+---
+
+### ✅ FASE 5: Validación de Propiedad y Ownership
+**Objetivo:** Agregar validación de propiedad en la capa de servicio para todas las operaciones de mutación. Aislada de Phase 4 para facilitar debugging.
+
+**Estado:** ✅ Completa (con fix post-revisión)
+
+#### Paso 1 — FarmController: proteger DELETE y PATCH /token ✅
+- Agregado `@RequestHeader("X-User-Id") Long ownerId` a `deleteFarm` y `regenerateToken`
+- Validación en `FarmCommandServiceImpl`: cargar farm → verificar `farm.getOwnerId() == ownerId` → lanzar `IllegalArgumentException` si no coincide (mensaje: "Farm not found with id: X" para no revelar existencia)
+- **Fix post-revisión**: `regenerateToken` ahora tiene try-catch para retornar 404 (antes retornaba 400 por falta de catch)
+
+#### Paso 2 — PondController: agregar X-User-Id a todas las mutaciones ✅
+- Agregado `@RequestHeader("X-User-Id") Long ownerId` a `createPond`, `updatePond`, `deletePond`
+- `getPondsByFarmId` también recibe `X-User-Id` y valida que el usuario sea dueño del farm antes de retornar ponds
+
+#### Paso 3 — PondCommandServiceImpl: validar jerarquía Owner → Farm → Pond ✅
+- Injectado `FarmRepository` en el servicio
+- `createPond`: verificar que la Farm pertenece al `ownerId`
+- `updatePond`/`deletePond`: cargar Pond → cargar Farm → verificar `farm.getOwnerId() == ownerId`
+
+#### Paso 4 — EquipmentCommandServiceImpl: validar Owner → Farm → Pond → Equipment ⏭️ **OMITIDO**
+- La arquitectura explícita decided no agregar `X-User-Id` a `EquipmentController`. La validación de ownership para Equipment se delega al API Gateway que filtra por `farmId` o `pondId`.
+
+#### Paso 5 — EquipmentQueryServiceImpl: agregar filtros ✅
+- `EquipmentRepository`: agregado `findByFarmId(Long farmId)` con JPQL subquery
+- `EquipmentQueryService`: nuevos métodos `getByPondId(Long)` y `getByFarmId(Long)`
+- `EquipmentController`: `GET /api/v1/equipment` acepta `@RequestParam Long pondId` y `@RequestParam Long farmId`
+- **Nota**: `GET /equipment` sin filtros retorna todos los equipos. El API Gateway debe adicionar siempre `farmId` o `pondId` como query param para filtrar.
+
+#### Verificación ✅
+- `./mvnw clean compile` pasa
+- `./mvnw test` pasa (29 tests — 17 nuevos de unit tests de ownership validation)
+- **Fix adicional**: `FarmController.regenerateToken` ahora retorna 404 para "no encontrado/no pertenece" (antes inconsistente con `deleteFarm` que ya tenía try-catch)
+- **Unit tests agregados**: `FarmCommandServiceImplTest` (7 tests) y `PondCommandServiceImplTest` (10 tests) cubren todos los paths de validación de ownership
+
+---
+
+### ✅ FASE 6: Limpieza de Remanentes del Monolito
+**Objetivo:** Eliminar todos los artefactos que no pertenecen al bounded context de equipment.
+
+**Estado:** ✅ Completa
+
+1. **Actualizar `AGENTS.md`:** ✅
+   - Cucumber marcado como out-of-scope
+   - Kafka KRaft documentado en compose.yaml
+   - Política de filtrado de `GET /equipment` documentada (sin params retorna todo; gateway debe adicionar `farmId`/`pondId`)
+
+2. **Verificar que no queden imports cruzados:** ✅
+   - Búsqueda por `subscription|iam\.|telemetry\.|notification\.` — cero matches en `*.java`
+   - `data.sql` permanece vacío (sin seeds de otros contextos)
+
+3. **Validar names scheme de tablas:** ✅
+   - `SnakeCaseWithPluralizedTablePhysicalNamingStrategy` existe en `shared/infrastructure/persistence/jpa/configuration/strategy/`
+   - Entidades `Farm`, `Pond`, `Equipment` usan `@Table(name = "farms")`, `@Table(name = "ponds")`, `@Table(name = "equipment")` con estrategia de nomenclatura personalizada
+   - Tablas físicas generadas: `farms`, `ponds`, `equipment`
+
+---
+
+## REGLAS DE GENERACIÓN DE CÓDIGO Y RESTRICCIONES ESTRICTAS
+
+- **Preserva la arquitectura CQRS y DDD:** Mantén la separación estricta de commands, queries, aggregates y value objects. No simplifiques el código destruyendo este diseño.
+- **Jerarquía Owner → Farm → Pond → Equipment:** Equipment se valida por su Pond, no directamente por ownerId. No añadir `@RequestHeader("X-User-Id")` a `EquipmentController`.
+- **Nombres de Tablas:** El proyecto utiliza `SnakeCaseWithPluralizedTablePhysicalNamingStrategy` (registrado en `application.properties`). Las entidades usan `@Table(name = "...")` explícito: `farms`, `ponds`, `equipment`.
+- **No uses Browser Alerts:** Todo el feedback de error a través de `GlobalExceptionHandler` con `ApiErrorResource`.
+- **Pensamiento Modular:** No generar código masivo fuera del bounded context de `equipment`.
+- **Compilación en cada fase:** Después de cada fase, ejecutar `./mvnw clean compile`.
+- **Kafka en KRaft mode:** Sin Zookeeper. Configurar `KAFKA_CFG_PROCESS_ROLES=broker,controller` y `KAFKA_CFG_CONTROLLER_QUORUM_VOTERS`.
+- **Sin listeners en este servicio:** El roadmap de Fase 4 especifica "No crear listeners aquí". Los consumers de los eventos viven en otros microservicios.
+- **Sin mensajes cross-context:** El error message en EquipmentCommandServiceImpl debe ser específico de equipment. No reutilizar mensajes de subscription u otros contextos.
+
+---
+
+## Notas de Seguridad — Resueltas
+
+- ✅ **Validación de propiedad en servicio**: Farm y Pond ahora validan `ownerId` en todas las operaciones de mutación a través de la cadena `Owner → Farm → Pond`.
+- ✅ **`GET /api/v1/equipment`**: Retorna todos los equipos sin filtro. El API Gateway debe garantizar que todas las requests incluyan `farmId` o `pondId` como query param.
+- ✅ **API Gateway**: Confiar en que el gateway filtra tráfico no autorizado antes de llegar al servicio.
