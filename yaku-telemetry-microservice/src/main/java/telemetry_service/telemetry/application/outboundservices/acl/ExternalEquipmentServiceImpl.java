@@ -61,4 +61,17 @@ public class ExternalEquipmentServiceImpl implements ExternalEquipmentService {
         }
         return 1L; // Fallback
     }
+
+    @Override
+    public Long getPondIdByDeviceId(String deviceId) {
+        try {
+            var response = restTemplate.getForObject(equipmentServiceUrl + "/equipment/physical-code/" + deviceId, Map.class);
+            if (response != null && response.get("pondId") != null) {
+                return Long.valueOf(response.get("pondId").toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        throw new IllegalArgumentException("Device not found or not linked to any pond: " + deviceId);
+    }
 }

@@ -10,8 +10,6 @@ public class ThresholdResourceFromEntityAssembler {
                 entity.getSpecies() != null ? entity.getSpecies().name() : null,
                 entity.getMinTemperature(),
                 entity.getMaxTemperature(),
-                entity.getMinPh(),
-                entity.getMaxPh(),
                 entity.getMinTurbidity(),
                 entity.getMaxTurbidity()
         );

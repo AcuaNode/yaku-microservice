@@ -5,8 +5,6 @@ public record ThresholdResource(
         String species,
         Double minTemperature,
         Double maxTemperature,
-        Double minPh,
-        Double maxPh,
         Double minTurbidity,
         Double maxTurbidity
 ) {

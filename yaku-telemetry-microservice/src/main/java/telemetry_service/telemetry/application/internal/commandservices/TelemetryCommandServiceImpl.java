@@ -43,21 +43,20 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
     @Override
     @Transactional
     public void handle(ProcessGroupedTelemetryCommand command) {
+        Long pondId = externalEquipmentService.getPondIdByDeviceId(command.deviceId());
+
         // We will assume the pond is valid. Saving the raw readings for non-null metrics
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         if (command.temperature() != null) {
-            sensorReadingRepository.save(new SensorReading(command.pondId(), SensorType.TEMPERATURE, new MeasurementValue(command.temperature(), "C"), now));
-        }
-        if (command.ph() != null) {
-            sensorReadingRepository.save(new SensorReading(command.pondId(), SensorType.PH, new MeasurementValue(command.ph(), "pH"), now));
+            sensorReadingRepository.save(new SensorReading(pondId, SensorType.TEMPERATURE, new MeasurementValue(command.temperature(), "C"), now));
         }
         if (command.turbidity() != null) {
-            sensorReadingRepository.save(new SensorReading(command.pondId(), SensorType.TURBIDITY, new MeasurementValue(command.turbidity(), "NTU"), now));
+            sensorReadingRepository.save(new SensorReading(pondId, SensorType.TURBIDITY, new MeasurementValue(command.turbidity(), "NTU"), now));
         }
 
         try {
             // Resolucion de Identidad
-            String speciesName = externalEquipmentService.getSpeciesByPondId(command.pondId());
+            String speciesName = externalEquipmentService.getSpeciesByPondId(pondId);
 
             // Carga de Reglas
             thresholdRepository.findBySpecies(Species.valueOf(speciesName)).ifPresentOrElse(threshold -> {
@@ -70,12 +69,6 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
                     anomaliesCount++;
                     messageBuilder.append(String.format("TEMPERATURE level is %.2f (Allowed: [%.2f, %.2f]). ", 
                             command.temperature(), threshold.getMinTemperature(), threshold.getMaxTemperature()));
-                }
-
-                if (command.ph() != null && threshold.isPhViolation(command.ph())) {
-                    anomaliesCount++;
-                    messageBuilder.append(String.format("PH level is %.2f (Allowed: [%.2f, %.2f]). ", 
-                            command.ph(), threshold.getMinPh(), threshold.getMaxPh()));
                 }
 
                 if (command.turbidity() != null && threshold.isTurbidityViolation(command.turbidity())) {
@@ -92,10 +85,10 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
                 String severity;
                 if (anomaliesCount == 1 || anomaliesCount == 2) {
                     severity = "WARNING";
-                    Long targetUserId = externalEquipmentService.getOperatorIdByPondId(command.pondId());
-                    messageBuilder.append(String.format("For species %s in pond %d.", speciesName, command.pondId()));
+                    Long targetUserId = externalEquipmentService.getOperatorIdByPondId(pondId);
+                    messageBuilder.append(String.format("For species %s in pond %d.", speciesName, pondId));
                     ThresholdBreachedEvent event = new ThresholdBreachedEvent(
-                            command.pondId(),
+                            pondId,
                             targetUserId,
                             severity,
                             "[" + severity + "] " + messageBuilder.toString()
@@ -103,17 +96,17 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
                     eventPublisher.publishEvent(event);
                 } else {
                     severity = "CRITICAL";
-                    Long adminId = externalEquipmentService.getUserIdByPondId(command.pondId());
-                    Long operatorId = externalEquipmentService.getOperatorIdByPondId(command.pondId());
-                    messageBuilder.append(String.format("For species %s in pond %d.", speciesName, command.pondId()));
+                    Long adminId = externalEquipmentService.getUserIdByPondId(pondId);
+                    Long operatorId = externalEquipmentService.getOperatorIdByPondId(pondId);
+                    messageBuilder.append(String.format("For species %s in pond %d.", speciesName, pondId));
                     String finalMessage = "[" + severity + "] " + messageBuilder.toString();
                     
                     // Alerta al Admin
-                    eventPublisher.publishEvent(new ThresholdBreachedEvent(command.pondId(), adminId, severity, finalMessage));
+                    eventPublisher.publishEvent(new ThresholdBreachedEvent(pondId, adminId, severity, finalMessage));
                     
                     // Alerta al Operador (si es distinto al Admin)
                     if (!adminId.equals(operatorId)) {
-                        eventPublisher.publishEvent(new ThresholdBreachedEvent(command.pondId(), operatorId, severity, finalMessage));
+                        eventPublisher.publishEvent(new ThresholdBreachedEvent(pondId, operatorId, severity, finalMessage));
                     }
                 }
             }, () -> {
@@ -121,7 +114,7 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
             });
 
         } catch (Exception e) {
-            log.warn("Failed to evaluate telemetry rules for pond {}: {}", command.pondId(), e.getMessage());
+            log.warn("Failed to evaluate telemetry rules for pond {}: {}", pondId, e.getMessage());
         }
     }
 
@@ -141,8 +134,6 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
             threshold.update(
                     command.minTemperature(),
                     command.maxTemperature(),
-                    command.minPh(),
-                    command.maxPh(),
                     command.minTurbidity(),
                     command.maxTurbidity()
             );
@@ -154,8 +145,6 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
                 speciesEnum,
                 command.minTemperature(),
                 command.maxTemperature(),
-                command.minPh(),
-                command.maxPh(),
                 command.minTurbidity(),
                 command.maxTurbidity()
         );

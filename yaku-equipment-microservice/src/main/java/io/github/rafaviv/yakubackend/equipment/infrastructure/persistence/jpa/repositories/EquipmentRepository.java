@@ -14,4 +14,5 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
     List<Equipment> findByPondId(Long pondId);
     List<Equipment> findByFarmId(Long farmId);
     List<Equipment> findByStatus(EquipmentStatus status);
+    java.util.Optional<Equipment> findByPhysicalCode(String physicalCode);
 }

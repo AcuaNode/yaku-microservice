@@ -9,8 +9,6 @@ public class ConfigureThresholdCommandFromResourceAssembler {
                 resource.species(),
                 resource.minTemperature(),
                 resource.maxTemperature(),
-                resource.minPh(),
-                resource.maxPh(),
                 resource.minTurbidity(),
                 resource.maxTurbidity()
         );
