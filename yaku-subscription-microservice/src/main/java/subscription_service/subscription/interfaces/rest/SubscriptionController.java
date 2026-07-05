@@ -1,24 +1,24 @@
 package subscription_service.subscription.interfaces.rest;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import subscription_service.subscription.application.internal.commandservices.SubscriptionCommandService;
 import subscription_service.subscription.application.internal.queryservices.SubscriptionQueryService;
-import subscription_service.subscription.domain.model.aggregates.Subscription;
 import subscription_service.subscription.interfaces.rest.resources.SubscribeToPlanResource;
 import subscription_service.subscription.interfaces.rest.resources.SubscriptionResource;
 import subscription_service.subscription.interfaces.rest.transform.SubscriptionResourceFromEntityAssembler;
+import subscription_service.subscription.domain.model.aggregates.Subscription;
+import subscription_service.subscription.domain.ports.ExternalPaymentGateway;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/subscriptions")
 public class SubscriptionController {
     private final SubscriptionCommandService subscriptionCommandService;
     private final SubscriptionQueryService subscriptionQueryService;
-    private final subscription_service.subscription.domain.ports.ExternalPaymentGateway externalPaymentGateway;
+    private final ExternalPaymentGateway externalPaymentGateway;
 
     public SubscriptionController(SubscriptionCommandService subscriptionCommandService,
-            SubscriptionQueryService subscriptionQueryService, subscription_service.subscription.domain.ports.ExternalPaymentGateway externalPaymentGateway) {
+            SubscriptionQueryService subscriptionQueryService, ExternalPaymentGateway externalPaymentGateway) {
         this.subscriptionCommandService = subscriptionCommandService;
         this.subscriptionQueryService = subscriptionQueryService;
         this.externalPaymentGateway = externalPaymentGateway;

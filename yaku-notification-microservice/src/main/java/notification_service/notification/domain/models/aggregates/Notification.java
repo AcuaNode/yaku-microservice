@@ -1,11 +1,9 @@
 package notification_service.notification.domain.models.aggregates;
 
 import java.time.LocalDateTime;
-
 import notification_service.notification.domain.models.valueobjects.NotificationType;
 import notification_service.notification.domain.models.valueobjects.RecipientInfo;
 import notification_service.notification.domain.models.valueobjects.TriggerSnapshot;
-
 
 public class Notification {
     private Long id;

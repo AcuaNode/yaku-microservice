@@ -6,4 +6,4 @@ public record ProcessGroupedTelemetryCommand(
         Double turbidity,
         Double ica
 ) {
-}
+}

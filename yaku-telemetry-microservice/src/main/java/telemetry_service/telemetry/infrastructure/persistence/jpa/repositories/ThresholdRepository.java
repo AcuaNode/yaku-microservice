@@ -10,4 +10,5 @@ import java.util.Optional;
 @Repository
 public interface ThresholdRepository extends JpaRepository<Threshold, Long> {
     Optional<Threshold> findBySpecies(Species species);
+    boolean existsBySpecies(Species species);
 }

@@ -57,7 +57,7 @@ services:
     image: postgres:17
     container_name: yaku-subscription-db
     ports:
-      - "5433:5432"
+      - "5437:5432"
     environment:
       POSTGRES_DB: mydatabase
       POSTGRES_USER: root

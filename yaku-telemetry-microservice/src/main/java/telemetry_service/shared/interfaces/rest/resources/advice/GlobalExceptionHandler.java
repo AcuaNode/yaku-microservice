@@ -1,4 +1,5 @@
 package telemetry_service.shared.interfaces.rest.resources.advice;
+
 import telemetry_service.shared.interfaces.rest.resources.ApiErrorResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

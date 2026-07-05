@@ -1,10 +1,10 @@
 package com.yaku.gateway.iam.interfaces.rest.transform;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.yaku.gateway.iam.domain.model.aggregates.User;
 import com.yaku.gateway.iam.interfaces.rest.resources.UserResource;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Assembler for converting User entity to UserResource
@@ -35,7 +35,6 @@ public class UserResourceFromEntityAssembler {
                 user.isVerified(),
                 user.getActive(),
                 roleNames,
-                user.getAssignedFarmId(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

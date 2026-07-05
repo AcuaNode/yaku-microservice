@@ -1,7 +1,7 @@
 package notification_service.notification.interfaces.rest.transform;
 
-import notification_service.notification.domain.models.aggregates.Notification;
 import notification_service.notification.domain.models.commands.SendNotificationCommand;
+import notification_service.notification.domain.models.aggregates.Notification;
 import notification_service.notification.domain.models.valueobjects.NotificationType;
 import notification_service.notification.interfaces.rest.resources.NotificationResponseResource;
 import notification_service.notification.interfaces.rest.resources.SendNotificationRequestResource;

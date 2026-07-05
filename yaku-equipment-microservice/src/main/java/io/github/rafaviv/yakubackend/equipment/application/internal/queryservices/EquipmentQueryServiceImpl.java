@@ -1,12 +1,12 @@
 package io.github.rafaviv.yakubackend.equipment.application.internal.queryservices;
 
 import io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment;
-import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByFarmIdQuery;
-import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByIdQuery;
-import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByPhysicalCodeQuery;
 import io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentQueryService;
 import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.repositories.EquipmentRepository;
 import org.springframework.stereotype.Service;
+
+import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByIdQuery;
+import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByFarmIdQuery;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,11 +28,6 @@ public class EquipmentQueryServiceImpl implements EquipmentQueryService {
     @Override
     public Optional<Equipment> handle(GetEquipmentByIdQuery query) {
         return equipmentRepository.findById(query.id());
-    }
-
-    @Override
-    public Optional<Equipment> handle(GetEquipmentByPhysicalCodeQuery query) {
-        return equipmentRepository.findByPhysicalCode(query.physicalCode());
     }
 
     @Override

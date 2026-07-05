@@ -1,10 +1,8 @@
 package notification_service.notification.domain.services;
 
-
+import notification_service.notification.domain.models.aggregates.Notification;
 import java.util.List;
 import java.util.Optional;
-
-import notification_service.notification.domain.models.aggregates.Notification;
 
 public interface NotificationRepository {
     Notification save(Notification notification);

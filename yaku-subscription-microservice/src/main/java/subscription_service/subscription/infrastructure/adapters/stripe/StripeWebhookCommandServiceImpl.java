@@ -1,10 +1,13 @@
 package subscription_service.subscription.infrastructure.adapters.stripe;
 
+import subscription_service.subscription.application.internal.commandservices.SubscriptionCommandService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import subscription_service.subscription.application.internal.commandservices.SubscriptionCommandService;
-
+/**
+ * Stripe Webhook Command Service
+ * Orchestrates business logic when Stripe webhook events are received.
+ */
 @Service
 public class StripeWebhookCommandServiceImpl {
 

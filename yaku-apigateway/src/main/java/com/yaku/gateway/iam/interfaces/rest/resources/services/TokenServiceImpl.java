@@ -1,17 +1,17 @@
 package com.yaku.gateway.iam.interfaces.rest.resources.services;
 
+import com.yaku.gateway.iam.infrastructure.tokens.jwt.BearerTokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import com.yaku.gateway.iam.infrastructure.tokens.jwt.BearerTokenService;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -120,11 +120,15 @@ public class TokenServiceImpl implements BearerTokenService {
         return authorizationHeaderParameter.substring(TOKEN_BEGIN_INDEX);
     }
 
+    private String getAuthorizationParameterFrom(HttpServletRequest request) {
+        return request.getHeader(AUTHORIZATION_PARAMETER_NAME);
+    }
+
     @Override
-    public String getBearerTokenFromHeader(String authorizationHeader) {
-        if (isTokenPresentIn(authorizationHeader) && isBearerTokenIn(authorizationHeader)) {
-            return extractTokenFrom(authorizationHeader);
-        }
+    public String getBearerTokenFrom(HttpServletRequest request) {
+        String parameter = getAuthorizationParameterFrom(request);
+
+        if (isTokenPresentIn(parameter) && isBearerTokenIn(parameter)) return extractTokenFrom(parameter);
         return null;
     }
 }

@@ -1,9 +1,8 @@
 package com.yaku.gateway.iam.application.internal.services;
 
-import org.springframework.stereotype.Service;
-
 import com.yaku.gateway.iam.domain.model.valueobjects.Roles;
 import com.yaku.gateway.iam.domain.services.RoleValidationService;
+import org.springframework.stereotype.Service;
 
 /**
  * Role Validation Service Implementation

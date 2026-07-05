@@ -45,6 +45,6 @@ public class TelemetryQueryServiceImpl implements TelemetryQueryService {
 
     @Override
     public java.util.Optional<telemetry_service.telemetry.domain.model.aggregates.Threshold> handle(telemetry_service.telemetry.domain.model.queries.GetThresholdBySpeciesQuery query) {
-        return thresholdRepository.findBySpecies(Species.valueOf(query.species().toUpperCase()));
+        return thresholdRepository.findBySpecies(Species.valueOf(query.species()));
     }
 }

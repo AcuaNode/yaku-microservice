@@ -1,14 +1,12 @@
 package io.github.rafaviv.yakubackend.equipment.interfaces.rest;
 
-import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByFarmIdQuery;
-import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByIdQuery;
 import io.github.rafaviv.yakubackend.equipment.domain.model.valueobjects.EquipmentType;
 import io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentCommandService;
+import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByFarmIdQuery;
+import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByIdQuery;
 import io.github.rafaviv.yakubackend.equipment.interfaces.rest.transform.RegisterEquipmentResource;
 import io.github.rafaviv.yakubackend.equipment.interfaces.rest.transform.RegisterIoTDeviceResource;
-
 import java.util.Optional;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +18,8 @@ public class EquipmentController {
     private final EquipmentCommandService equipmentCommandService;
     private final io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentQueryService equipmentQueryService;
 
-    public EquipmentController(EquipmentCommandService equipmentCommandService, io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentQueryService equipmentQueryService) {
+    public EquipmentController(EquipmentCommandService equipmentCommandService,
+            io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentQueryService equipmentQueryService) {
         this.equipmentCommandService = equipmentCommandService;
         this.equipmentQueryService = equipmentQueryService;
     }
@@ -28,7 +27,9 @@ public class EquipmentController {
     @PostMapping
     public ResponseEntity<?> registerEquipment(@RequestBody RegisterEquipmentResource resource) {
         try {
-            var equipment = equipmentCommandService.registerEquipment(EquipmentType.valueOf(resource.type().toUpperCase()), resource.name(), resource.physicalCode(), resource.farmId());
+            var equipment = equipmentCommandService.registerEquipment(
+                    EquipmentType.valueOf(resource.type().toUpperCase()), resource.name(), resource.physicalCode(),
+                    resource.farmId());
             if (equipment.isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
@@ -62,7 +63,8 @@ public class EquipmentController {
     }
 
     @GetMapping
-    public ResponseEntity<java.util.List<io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment>> getAllEquipment(@RequestParam(required = false) Long farmId) {
+    public ResponseEntity<java.util.List<io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment>> getAllEquipment(
+            @RequestParam(required = false) Long farmId) {
         if (farmId != null) {
             return ResponseEntity.ok(equipmentQueryService.handle(new GetEquipmentByFarmIdQuery(farmId)));
         }
@@ -71,18 +73,10 @@ public class EquipmentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getEquipmentById(@PathVariable Long id) {
-        Optional<io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment> equipment = equipmentQueryService.handle(new GetEquipmentByIdQuery(id));
+        Optional<io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment> equipment = equipmentQueryService
+                .handle(new GetEquipmentByIdQuery(id));
         if (equipment.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Equipment not found with id: " + id);
-        }
-        return ResponseEntity.ok(equipment.get());
-    }
-
-    @GetMapping("/physical-code/{physicalCode}")
-    public ResponseEntity<?> getEquipmentByPhysicalCode(@PathVariable String physicalCode) {
-        Optional<io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment> equipment = equipmentQueryService.handle(new io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByPhysicalCodeQuery(physicalCode));
-        if (equipment.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Equipment not found with physical code: " + physicalCode);
         }
         return ResponseEntity.ok(equipment.get());
     }
@@ -96,4 +90,16 @@ public class EquipmentController {
             return ResponseEntity.notFound().build();
         }
     }
-}
+
+    @PostMapping("/{equipmentId}/command")
+    public ResponseEntity<?> executeRemoteCommand(@PathVariable Long equipmentId) {
+        try {
+            equipmentCommandService.executeRemoteCommand(equipmentId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error executing command");
+        }
+    }
+}

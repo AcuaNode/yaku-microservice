@@ -2,7 +2,6 @@ package com.yaku.gateway.iam.infrastructure.authorization.sfs.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.yaku.gateway.iam.domain.model.aggregates.User;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;

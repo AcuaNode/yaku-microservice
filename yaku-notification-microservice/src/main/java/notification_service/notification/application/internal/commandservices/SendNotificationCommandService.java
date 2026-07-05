@@ -1,16 +1,15 @@
 package notification_service.notification.application.internal.commandservices;
 
 import org.springframework.stereotype.Service;
-
-import notification_service.notification.domain.models.aggregates.DeviceToken;
 import notification_service.notification.domain.models.aggregates.Notification;
-import notification_service.notification.domain.models.commands.SendNotificationCommand;
 import notification_service.notification.domain.models.valueobjects.RecipientInfo;
-import notification_service.notification.domain.models.valueobjects.SensorType;
 import notification_service.notification.domain.models.valueobjects.TriggerSnapshot;
-import notification_service.notification.domain.services.DeviceTokenRepository;
+import notification_service.notification.domain.models.valueobjects.SensorType;
 import notification_service.notification.domain.services.NotificationRepository;
 import notification_service.notification.domain.services.PushNotificationService;
+import notification_service.notification.domain.services.DeviceTokenRepository;
+import notification_service.notification.domain.models.aggregates.DeviceToken;
+import notification_service.notification.domain.models.commands.SendNotificationCommand;
 
 import java.util.List;
 import java.util.stream.Collectors;

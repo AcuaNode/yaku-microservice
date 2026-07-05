@@ -1,47 +1,48 @@
 package com.yaku.gateway.iam.infrastructure.authorization.sfs.pipeline;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Unauthorized Request Handler Entry Point
+ * <p>
+ * This class handles unauthorized requests by returning a JSON response
+ * with error details when authentication fails.
+ * </p>
+ */
 @Component
-public class UnauthorizedRequestHandlerEntryPoint implements ServerAuthenticationEntryPoint {
+public class UnauthorizedRequestHandlerEntryPoint implements AuthenticationEntryPoint {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UnauthorizedRequestHandlerEntryPoint.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public Mono<Void> commence(ServerWebExchange exchange, AuthenticationException authException) {
+    public void commence(HttpServletRequest request, HttpServletResponse response,
+                        AuthenticationException authException) throws IOException {
+        
         LOGGER.error("Unauthorized error: {}", authException.getMessage());
-
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-
+        
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        
         Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
+        body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
         body.put("error", "Unauthorized");
         body.put("message", authException.getMessage());
-        body.put("path", exchange.getRequest().getPath().value());
+        body.put("path", request.getServletPath());
         body.put("timestamp", System.currentTimeMillis());
-
-        try {
-            byte[] bytes = objectMapper.writeValueAsBytes(body);
-            DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bytes);
-            return exchange.getResponse().writeWith(Mono.just(buffer));
-        } catch (Exception e) {
-            LOGGER.error("Error writing unauthorized response", e);
-            return exchange.getResponse().setComplete();
-        }
+        
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.writeValue(response.getOutputStream(), body);
     }
 }

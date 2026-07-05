@@ -1,12 +1,11 @@
 package io.github.rafaviv.yakubackend.equipment.interfaces.acl;
 
-import org.springframework.stereotype.Component;
-
-import io.github.rafaviv.yakubackend.equipment.application.outboundservices.acl.ExternalEquipmentService;
 import io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Farm;
 import io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Pond;
 import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.repositories.FarmRepository;
 import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.repositories.PondRepository;
+import io.github.rafaviv.yakubackend.telemetry.application.outboundservices.acl.ExternalEquipmentService;
+import org.springframework.stereotype.Component;
 
 /**
  * Adapter that implements the ExternalEquipmentService port defined in the Telemetry context.

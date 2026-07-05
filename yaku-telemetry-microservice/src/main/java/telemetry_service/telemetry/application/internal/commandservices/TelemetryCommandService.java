@@ -5,7 +5,8 @@ import telemetry_service.telemetry.domain.model.commands.ProcessGroupedTelemetry
 
 public interface TelemetryCommandService {
     void handle(ProcessGroupedTelemetryCommand command);
+
     void handle(GenerateAggregatesCommand command);
+
     Long handle(telemetry_service.telemetry.domain.model.commands.ConfigureThresholdCommand command);
-    void executeRemoteCommand(String physicalCode, String command);
 }

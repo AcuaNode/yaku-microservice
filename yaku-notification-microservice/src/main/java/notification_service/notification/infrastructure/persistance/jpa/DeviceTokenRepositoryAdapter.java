@@ -3,6 +3,7 @@ package notification_service.notification.infrastructure.persistance.jpa;
 import org.springframework.stereotype.Repository;
 import notification_service.notification.domain.models.aggregates.DeviceToken;
 import notification_service.notification.domain.services.DeviceTokenRepository;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

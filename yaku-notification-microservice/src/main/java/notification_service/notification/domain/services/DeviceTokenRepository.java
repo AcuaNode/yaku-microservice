@@ -1,9 +1,8 @@
 package notification_service.notification.domain.services;
 
-
+import notification_service.notification.domain.models.aggregates.DeviceToken;
 import java.util.List;
 import java.util.Optional;
-import notification_service.notification.domain.models.aggregates.DeviceToken;
 
 public interface DeviceTokenRepository {
     DeviceToken save(DeviceToken deviceToken);

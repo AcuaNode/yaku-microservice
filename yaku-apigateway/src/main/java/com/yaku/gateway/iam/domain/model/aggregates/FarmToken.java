@@ -1,18 +1,19 @@
 package com.yaku.gateway.iam.domain.model.aggregates;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.yaku.gateway.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
+import jakarta.persistence.*;
 import lombok.Getter;
 
 import java.util.UUID;
-
-import com.yaku.gateway.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
 
 @Entity
 @Getter
 @Table(name = "farm_tokens")
 public class FarmToken extends AuditableAbstractAggregateRoot<FarmToken> {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String token;
@@ -23,7 +24,12 @@ public class FarmToken extends AuditableAbstractAggregateRoot<FarmToken> {
     @Column(nullable = false)
     private boolean isUsed;
 
-    protected FarmToken() {
+        public Long getId() { return id; }
+    public String getToken() { return token; }
+    public Long getFarmId() { return farmId; }
+    public boolean isUsed() { return isUsed; }
+
+    public FarmToken() {
     }
 
     public FarmToken(Long farmId) {

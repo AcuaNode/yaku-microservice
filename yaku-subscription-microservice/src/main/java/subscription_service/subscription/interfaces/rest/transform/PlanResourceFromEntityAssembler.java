@@ -11,6 +11,7 @@ public class PlanResourceFromEntityAssembler {
                 entity.getPrice(),
                 entity.getCurrency().name(),
                 entity.getMaxPonds(),
-                entity.getDurationInDays());
+                entity.getDurationInDays(),
+                entity.getStripePriceId());
     }
 }

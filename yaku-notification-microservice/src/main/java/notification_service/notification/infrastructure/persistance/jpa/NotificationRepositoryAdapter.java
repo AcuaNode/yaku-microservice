@@ -1,7 +1,6 @@
 package notification_service.notification.infrastructure.persistance.jpa;
 
 import org.springframework.stereotype.Repository;
-
 import notification_service.notification.domain.models.aggregates.Notification;
 import notification_service.notification.domain.models.valueobjects.RecipientInfo;
 import notification_service.notification.domain.models.valueobjects.TriggerSnapshot;

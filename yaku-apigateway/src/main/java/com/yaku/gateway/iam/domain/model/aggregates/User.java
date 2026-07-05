@@ -1,17 +1,15 @@
 package com.yaku.gateway.iam.domain.model.aggregates;
 
-
+import com.yaku.gateway.iam.domain.model.entities.Role;
+import com.yaku.gateway.iam.domain.model.valueobjects.Email;
+import com.yaku.gateway.iam.domain.model.valueobjects.HashedPassword;
+import com.yaku.gateway.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.yaku.gateway.iam.domain.model.entities.Role;
-import com.yaku.gateway.iam.domain.model.valueobjects.Email;
-import com.yaku.gateway.iam.domain.model.valueobjects.HashedPassword;
-import com.yaku.gateway.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
 
 /** 
  * User aggregate root for IAM context
@@ -69,6 +67,18 @@ public class User extends AuditableAbstractAggregateRoot<User> {
      * @param lastName el apellido
      * @param isVerified si está verificado
      */
+        public Long getId() { return id; }
+    public String getUsername() { return username; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public HashedPassword getPassword() { return password; }
+    public Boolean getActive() { return active; }
+    public Boolean isVerified() { return isVerified; }
+    public Email getEmail() { return email; }
+    public List<Role> getRoles() { return roles; }
+    public Long getAssignedFarmId() { return assignedFarmId; }
+    public void setAssignedFarmId(Long assignedFarmId) { this.assignedFarmId = assignedFarmId; }
+
     public User(String username, Email email, HashedPassword password, String firstName, String lastName, boolean isVerified) {
         this.username = username;
         this.email = email;

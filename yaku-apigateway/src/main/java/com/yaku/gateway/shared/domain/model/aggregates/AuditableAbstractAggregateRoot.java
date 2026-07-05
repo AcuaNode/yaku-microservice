@@ -13,7 +13,9 @@ import java.util.Date;
  * Base class for all aggregate roots that require auditing.
  *
  * @param <T> the type of the aggregate root
- * @summary The class is an abstract class that extends the {@link AbstractAggregateRoot} class and adds auditing fields to the class.
+ * @summary The class is an abstract class that extends the {@link AbstractAggregateRoot    public java.util.Date getCreatedAt() { return createdAt; }
+    public java.util.Date getUpdatedAt() { return updatedAt; }
+} class and adds auditing fields to the class.
  */
 @Getter
 @EntityListeners(AuditingEntityListener.class)
@@ -22,7 +24,7 @@ public class AuditableAbstractAggregateRoot<T extends AbstractAggregateRoot<T>> 
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    protected Long id;
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Date createdAt;
@@ -30,4 +32,6 @@ public class AuditableAbstractAggregateRoot<T extends AbstractAggregateRoot<T>> 
     @Column(nullable = false)
     private Date updatedAt;
 
+    public java.util.Date getCreatedAt() { return createdAt; }
+    public java.util.Date getUpdatedAt() { return updatedAt; }
 }

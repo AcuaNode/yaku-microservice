@@ -1,10 +1,8 @@
 package com.yaku.gateway.iam.infrastructure.hashing.services;
 
-
+import com.yaku.gateway.iam.infrastructure.hashing.bcrypt.BCryptHashingService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import com.yaku.gateway.iam.infrastructure.hashing.bcrypt.BCryptHashingService;
 
 @Service
 public class HashingServiceImpl implements BCryptHashingService {

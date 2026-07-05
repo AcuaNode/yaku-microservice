@@ -1,10 +1,9 @@
 package notification_service.notification.application.internal.queryservices;
 
 import org.springframework.stereotype.Service;
-
 import notification_service.notification.domain.models.aggregates.Notification;
-import notification_service.notification.domain.models.queries.ListNotificationsQuery;
 import notification_service.notification.domain.services.NotificationRepository;
+import notification_service.notification.domain.models.queries.ListNotificationsQuery;
 
 import java.util.List;
 

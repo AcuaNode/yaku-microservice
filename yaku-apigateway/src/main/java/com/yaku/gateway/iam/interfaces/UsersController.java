@@ -1,14 +1,5 @@
 package com.yaku.gateway.iam.interfaces;
 
-import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-
 import com.yaku.gateway.iam.application.internal.commandservices.UserCommandServiceImpl;
 import com.yaku.gateway.iam.application.internal.queryservices.UserQueryServiceImpl;
 import com.yaku.gateway.iam.domain.model.aggregates.User;
@@ -21,7 +12,6 @@ import com.yaku.gateway.iam.domain.model.exceptions.UserNotFoundException;
 import com.yaku.gateway.iam.domain.model.queries.GetAllUsersQuery;
 import com.yaku.gateway.iam.domain.model.queries.GetUserByIdQuery;
 import com.yaku.gateway.iam.domain.model.queries.GetUserByUsernameQuery;
-import com.yaku.gateway.iam.domain.model.queries.GetUsersByFarmIdQuery;
 import com.yaku.gateway.iam.domain.services.RoleValidationService;
 import com.yaku.gateway.iam.interfaces.rest.resources.AuthenticationResponseResource;
 import com.yaku.gateway.iam.interfaces.rest.resources.ChangePasswordResource;
@@ -31,10 +21,23 @@ import com.yaku.gateway.iam.interfaces.rest.resources.UserResource;
 import com.yaku.gateway.iam.interfaces.rest.transform.SignInCommandFromResourceAssembler;
 import com.yaku.gateway.iam.interfaces.rest.transform.SignUpCommandFromResourceAssembler;
 import com.yaku.gateway.iam.interfaces.rest.transform.UserResourceFromEntityAssembler;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Users REST Controller
+ * <p>
+ * This controller handles HTTP requests for user-related operations including
+ * registration, authentication, and user management following REST principles.
+ * </p>
+ */
 @RestController
 @RequestMapping("/api/v1/users")
 public class UsersController {
@@ -54,164 +57,229 @@ public class UsersController {
         this.roleValidationService = roleValidationService;
     }
 
+    /**
+     * Register a new user
+     * 
+     * @param signUpResource the user registration data
+     * @return ResponseEntity with success message
+     */
+    /**
+     * Register a new user
+     * 
+     * @param signUpResource the user registration data
+     * @return ResponseEntity with success message
+     */
     @PostMapping("/signup")
-    public Mono<ResponseEntity<String>> signUp(@Valid @RequestBody SignUpResource signUpResource) {
-        return Mono.fromCallable(() -> {
-            try {
-                LOGGER.info("Processing signup request for username: {}", signUpResource.username());
-                SignUpCommand command = SignUpCommandFromResourceAssembler.toCommandFromResource(signUpResource);
-                userCommandService.handle(command);
-                LOGGER.info("User registered successfully: {}", signUpResource.username());
-                return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
-            } catch (UserAlreadyExistsException e) {
-                LOGGER.warn("Signup failed: {}", e.getMessage());
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-            } catch (IllegalArgumentException e) {
-                LOGGER.warn("Signup failed: {}", e.getMessage());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-            } catch (Exception e) {
-                LOGGER.error("Unexpected error during signup", e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("An unexpected error occurred during registration");
-            }
-        }).subscribeOn(Schedulers.boundedElastic());
+    public ResponseEntity<String> signUp(@Valid @RequestBody SignUpResource signUpResource) {
+        try {
+            LOGGER.info("Processing signup request for username: {}", signUpResource.username());
+
+            SignUpCommand command = SignUpCommandFromResourceAssembler.toCommandFromResource(signUpResource);
+            userCommandService.handle(command);
+
+            LOGGER.info("User registered successfully: {}", signUpResource.username());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("User registered successfully");
+
+        } catch (UserAlreadyExistsException e) {
+            LOGGER.warn("Signup failed for username {}: {}", signUpResource.username(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("Signup failed for username {}: {}", signUpResource.username(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("Unexpected error during signup for username {}: {}", signUpResource.username(),
+                    e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred during registration");
+        }
     }
 
+    /**
+     * Authenticate a user and return JWT token
+     * 
+     * @param signInResource the user authentication data
+     * @return ResponseEntity with JWT token and user information
+     */
     @PostMapping("/signin")
-    public Mono<ResponseEntity<Object>> signIn(@Valid @RequestBody SignInResource signInResource) {
-        return Mono.fromCallable(() -> {
-            ResponseEntity<Object> response;
-            try {
-                LOGGER.info("Processing signin request for username: {}", signInResource.username());
-                SignInCommand command = SignInCommandFromResourceAssembler.toCommandFromResource(signInResource);
-                userCommandService.handle(command);
+    public ResponseEntity<?> signIn(@Valid @RequestBody SignInResource signInResource) {
+        try {
+            LOGGER.info("Processing signin request for username: {}", signInResource.username());
 
-                Optional<User> userOptional = userQueryService.handle(new GetUserByUsernameQuery(signInResource.username()));
-                if (userOptional.isEmpty()) {
-                    response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
-                } else {
-                    User user = userOptional.get();
-                    String token = userCommandService.generateTokenForUser(user);
-                    UserResource userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user);
-                    AuthenticationResponseResource authResponse = AuthenticationResponseResource.of(token, 604800L, userResource);
-                    LOGGER.info("User authenticated successfully: {}", signInResource.username());
-                    response = ResponseEntity.ok(authResponse);
-                }
-            } catch (InvalidCredentialsException e) {
-                LOGGER.warn("Signin failed: {}", e.getMessage());
-                response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-            } catch (UserAccountDeactivatedException e) {
-                LOGGER.warn("Signin failed: {}", e.getMessage());
-                response = ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-            } catch (IllegalArgumentException e) {
-                LOGGER.warn("Signin failed: {}", e.getMessage());
-                response = ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-            } catch (Exception e) {
-                LOGGER.error("Unexpected error during signin", e);
-                response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("An unexpected error occurred during authentication");
+            SignInCommand command = SignInCommandFromResourceAssembler.toCommandFromResource(signInResource);
+            userCommandService.handle(command);
+
+            // Get user details for token generation
+            Optional<User> userOptional = userQueryService
+                    .handle(new GetUserByUsernameQuery(signInResource.username()));
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Authentication failed");
             }
-            return response;
-        }).subscribeOn(Schedulers.boundedElastic());
+
+            User user = userOptional.get();
+            String token = userCommandService.generateTokenForUser(user);
+            UserResource userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user);
+
+            // Token expires in 7 days (604800 seconds)
+            AuthenticationResponseResource response = AuthenticationResponseResource.of(token, 604800L, userResource);
+
+            LOGGER.info("User authenticated successfully: {}", signInResource.username());
+            return ResponseEntity.ok(response);
+
+        } catch (InvalidCredentialsException e) {
+            LOGGER.warn("Signin failed for username {}: {}", signInResource.username(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
+        } catch (UserAccountDeactivatedException e) {
+            LOGGER.warn("Signin failed for username {}: {}", signInResource.username(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("Signin failed for username {}: {}", signInResource.username(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("Unexpected error during signin for username {}: {}", signInResource.username(),
+                    e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred during authentication");
+        }
     }
 
+    /**
+     * Get user by username
+     * 
+     * @param username the user username
+     * @return ResponseEntity with user information
+     */
     @GetMapping("/by-username")
-    public Mono<ResponseEntity<Object>> getUserByUsername(@RequestParam String username) {
-        return Mono.fromCallable(() -> {
-            ResponseEntity<Object> response;
-            try {
-                LOGGER.debug("Processing getUserByUsername: {}", username);
-                Optional<User> userOptional = userQueryService.handle(new GetUserByUsernameQuery(username));
-                if (userOptional.isEmpty()) {
-                    throw new UserNotFoundException(username);
-                }
-                UserResource userResource = UserResourceFromEntityAssembler.toResourceFromEntity(userOptional.get());
-                response = ResponseEntity.ok(userResource);
-            } catch (UserNotFoundException e) {
-                LOGGER.warn("User not found: {}", username);
-                response = ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-            } catch (Exception e) {
-                LOGGER.error("Error retrieving user", e);
-                response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("An unexpected error occurred");
+    public ResponseEntity<?> getUserByUsername(@RequestParam String username) {
+        try {
+            LOGGER.debug("Processing getUserByUsername request for username: {}", username);
+
+            Optional<User> userOptional = userQueryService.handle(new GetUserByUsernameQuery(username));
+
+            if (userOptional.isEmpty()) {
+                throw new UserNotFoundException(username);
             }
-            return response;
-        }).subscribeOn(Schedulers.boundedElastic());
+
+            User user = userOptional.get();
+            UserResource userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user);
+
+            return ResponseEntity.ok(userResource);
+
+        } catch (UserNotFoundException e) {
+            LOGGER.warn("User not found with username: {}", username);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("Unexpected error retrieving user by username {}: {}", username, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred while retrieving user");
+        }
     }
 
+    /**
+     * Get user by ID
+     * 
+     * @param id the user ID
+     * @return ResponseEntity with user information
+     */
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<Object>> getUserById(@PathVariable Long id) {
-        return Mono.fromCallable(() -> {
-            ResponseEntity<Object> response;
-            try {
-                LOGGER.debug("Processing getUserById: {}", id);
-                Optional<User> userOptional = userQueryService.handle(new GetUserByIdQuery(id));
-                if (userOptional.isEmpty()) {
-                    response = ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with id: " + id);
-                } else {
-                    UserResource userResource = UserResourceFromEntityAssembler.toResourceFromEntity(userOptional.get());
-                    response = ResponseEntity.ok(userResource);
-                }
-            } catch (Exception e) {
-                LOGGER.error("Error retrieving user by id", e);
-                response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving user");
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            LOGGER.debug("Processing getUserById request for ID: {}", id);
+
+            Optional<User> userOptional = userQueryService.handle(new GetUserByIdQuery(id));
+
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("User not found with id: " + id);
             }
-            return response;
-        }).subscribeOn(Schedulers.boundedElastic());
+
+            User user = userOptional.get();
+            UserResource userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user);
+
+            return ResponseEntity.ok(userResource);
+
+        } catch (Exception e) {
+            LOGGER.error("Unexpected error retrieving user by id {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred while retrieving user");
+        }
     }
 
+    /**
+     * Get all users
+     * 
+     * @param farmId optional farm ID to filter users
+     * @return ResponseEntity with list of all users
+     */
     @GetMapping
-    public Mono<ResponseEntity<Object>> getAllUsers(@RequestParam(required = false) Long farmId) {
-        return Mono.fromCallable(() -> {
-            ResponseEntity<Object> response;
-            try {
-                LOGGER.debug("Processing getAllUsers. farmId: {}", farmId);
-                List<User> users = (farmId != null) 
-                        ? userQueryService.handle(new GetUsersByFarmIdQuery(farmId))
-                        : userQueryService.handle(new GetAllUsersQuery());
-                
-                List<UserResource> resources = users.stream()
-                        .map(UserResourceFromEntityAssembler::toResourceFromEntity)
-                        .toList();
-                response = ResponseEntity.ok(resources);
-            } catch (Exception e) {
-                LOGGER.error("Error retrieving all users", e);
-                response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving users");
+    public ResponseEntity<?> getAllUsers(@RequestParam(required = false) Long farmId) {
+        try {
+            LOGGER.debug("Processing getAllUsers request. farmId: {}", farmId);
+
+            List<User> users;
+            if (farmId != null) {
+                users = userQueryService.handle(
+                        new com.yaku.gateway.iam.domain.model.queries.GetUsersByFarmIdQuery(farmId));
+            } else {
+                users = userQueryService
+                        .handle(new com.yaku.gateway.iam.domain.model.queries.GetAllUsersQuery());
             }
-            return response;
-        }).subscribeOn(Schedulers.boundedElastic());
+
+            List<UserResource> userResources = users.stream()
+                    .map(UserResourceFromEntityAssembler::toResourceFromEntity)
+                    .toList();
+
+            return ResponseEntity.ok(userResources);
+
+        } catch (Exception e) {
+            LOGGER.error("Unexpected error retrieving all users: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred while retrieving users");
+        }
     }
 
-    @GetMapping("/available-roles")
-    public Mono<ResponseEntity<Object>> getAvailableRoles() {
-        return Mono.fromCallable(() -> {
-            ResponseEntity<Object> response;
-            try {
-                var availableRoles = roleValidationService.getAvailableRolesForRegistration();
-                response = ResponseEntity.ok(availableRoles);
-            } catch (Exception e) {
-                LOGGER.error("Error retrieving roles", e);
-                response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving roles");
-            }
-            return response;
-        }).subscribeOn(Schedulers.boundedElastic());
-    }
-
+    /**
+     * Change user password
+     */
     @PatchMapping("/{id}/password")
-    public Mono<ResponseEntity<Object>> changePassword(@PathVariable Long id, @RequestBody ChangePasswordResource resource) {
-        return Mono.fromCallable(() -> {
-            ResponseEntity<Object> response;
-            try {
-                userCommandService.changePassword(id, resource.currentPassword(), resource.newPassword());
-                response = ResponseEntity.ok().build();
-            } catch (InvalidCredentialsException e) {
-                response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Current password incorrect");
-            } catch (IllegalArgumentException e) {
-                response = ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-            } catch (Exception e) {
-                response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error changing password");
-            }
-            return response;
-        }).subscribeOn(Schedulers.boundedElastic());
+    public ResponseEntity<?> changePassword(@PathVariable Long id, @RequestBody ChangePasswordResource resource) {
+        try {
+            userCommandService.changePassword(id, resource.currentPassword(), resource.newPassword());
+            return ResponseEntity.ok().build();
+        } catch (com.yaku.gateway.iam.domain.model.exceptions.InvalidCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Contraseña actual incorrecta");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al cambiar la contraseña");
+        }
+    }
+
+    /**
+     * Get available roles for registration
+     *
+     * @return ResponseEntity with list of available roles
+     */
+    @GetMapping("/available-roles")
+    public ResponseEntity<?> getAvailableRoles() {
+        try {
+            LOGGER.debug("Processing getAvailableRoles request");
+
+            var availableRoles = roleValidationService.getAvailableRolesForRegistration();
+
+            return ResponseEntity.ok(availableRoles);
+
+        } catch (Exception e) {
+            LOGGER.error("Unexpected error retrieving available roles: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred while retrieving available roles");
+        }
     }
 }

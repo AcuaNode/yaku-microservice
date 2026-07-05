@@ -1,13 +1,12 @@
 package com.yaku.gateway.iam.domain.services;
 
-import java.util.List;
-import java.util.Optional;
-
 import com.yaku.gateway.iam.domain.model.aggregates.User;
 import com.yaku.gateway.iam.domain.model.queries.GetAllUsersQuery;
 import com.yaku.gateway.iam.domain.model.queries.GetUserByIdQuery;
 import com.yaku.gateway.iam.domain.model.queries.GetUserByUsernameQuery;
-import com.yaku.gateway.iam.domain.model.queries.GetUsersByFarmIdQuery;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Defines the contract for query-based (read-only) operations on the User aggregate.
@@ -40,5 +39,5 @@ public interface UserQueryService {
      * @param query The query containing the farm ID.
      * @return A list of all User aggregates assigned to the farm.
      */
-    List<User> handle(GetUsersByFarmIdQuery query);
+    List<User> handle(com.yaku.gateway.iam.domain.model.queries.GetUsersByFarmIdQuery query);
 }

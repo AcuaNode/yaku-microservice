@@ -1,15 +1,13 @@
 package subscription_service.subscription.interfaces.rest;
 
+import com.stripe.model.EventDataObjectDeserializer;
+import subscription_service.subscription.infrastructure.adapters.stripe.StripeWebhookCommandServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.stripe.model.Event;
-import com.stripe.model.EventDataObjectDeserializer;
-import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
-
-import subscription_service.subscription.infrastructure.adapters.stripe.StripeWebhookCommandServiceImpl;
-
+import com.stripe.model.checkout.Session;
 import org.springframework.beans.factory.annotation.Value;
 
 @RestController
@@ -18,7 +16,7 @@ public class StripeWebhookController {
 
     private final StripeWebhookCommandServiceImpl stripeWebhookCommandService;
 
-    @Value("${stripe.webhook.secret}")
+    @Value("whsec_4f7a0690d4d54fcb8212718328742328297d12eaf659687c00beb8a1e15821bf")
     private String webhookSecret;
 
     public StripeWebhookController(StripeWebhookCommandServiceImpl stripeWebhookCommandService) {

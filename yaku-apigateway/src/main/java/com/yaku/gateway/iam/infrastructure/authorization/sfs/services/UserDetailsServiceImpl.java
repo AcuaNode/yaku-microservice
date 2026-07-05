@@ -1,15 +1,14 @@
 package com.yaku.gateway.iam.infrastructure.authorization.sfs.services;
 
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Service;
-
 import com.yaku.gateway.iam.domain.model.aggregates.User;
-import com.yaku.gateway.iam.domain.model.queries.GetUserByUsernameQuery;
 import com.yaku.gateway.iam.domain.services.UserQueryService;
+import com.yaku.gateway.iam.domain.model.queries.GetUserByUsernameQuery;
 import com.yaku.gateway.iam.infrastructure.authorization.sfs.model.UserDetailsImpl;
 import com.yaku.gateway.iam.infrastructure.authorization.sfs.model.UserDetailsServiceExtension;
 import com.yaku.gateway.iam.infrastructure.persistence.jpa.repositories.UserRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
 /**
  * User Details Service Implementation

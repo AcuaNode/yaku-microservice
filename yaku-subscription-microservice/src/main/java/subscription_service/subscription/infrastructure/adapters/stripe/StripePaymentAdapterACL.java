@@ -1,9 +1,10 @@
 package subscription_service.subscription.infrastructure.adapters.stripe;
 
-import org.springframework.stereotype.Service;
-import subscription_service.subscription.domain.model.services.ExternalPaymentService;
+import subscription_service.subscription.domain.ports.ExternalPaymentService;
 import subscription_service.subscription.domain.model.valueobjects.Currency;
 import subscription_service.subscription.domain.model.valueobjects.PaymentStatus;
+
+import org.springframework.stereotype.Service;
 
 /**
  * Patrón: Adapter / Anti-Corruption Layer (ACL)
@@ -20,3 +21,4 @@ public class StripePaymentAdapterACL implements ExternalPaymentService {
         return PaymentStatus.SUCCESS;
     }
 }
+

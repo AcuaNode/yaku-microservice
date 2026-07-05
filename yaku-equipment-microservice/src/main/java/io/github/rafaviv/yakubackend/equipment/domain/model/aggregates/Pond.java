@@ -46,7 +46,7 @@ public class Pond extends AuditableAbstractAggregateRoot<Pond> {
         this.volume = volume;
         this.status = PondStatus.ACTIVE;
     }
-    
+
     public void updateStatus(PondStatus status) {
         this.status = status;
     }

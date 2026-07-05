@@ -1,12 +1,10 @@
 package notification_service.notification.infrastructure.rest;
 
-import org.springframework.stereotype.Service;
-
-import com.google.firebase.messaging.AndroidConfig;
-import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.MulticastMessage;
-
+import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.AndroidConfig;
+import org.springframework.stereotype.Service;
 import notification_service.notification.domain.models.aggregates.Notification;
 import notification_service.notification.domain.services.PushNotificationService;
 import java.util.List;

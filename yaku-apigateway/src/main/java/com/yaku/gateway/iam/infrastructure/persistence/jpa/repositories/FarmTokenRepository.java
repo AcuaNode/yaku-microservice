@@ -1,9 +1,8 @@
 package com.yaku.gateway.iam.infrastructure.persistence.jpa.repositories;
 
+import com.yaku.gateway.iam.domain.model.aggregates.FarmToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
-import com.yaku.gateway.iam.domain.model.aggregates.FarmToken;
 
 import java.util.Optional;
 

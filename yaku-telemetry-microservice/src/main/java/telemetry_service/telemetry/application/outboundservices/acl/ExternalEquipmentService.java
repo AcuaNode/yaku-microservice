@@ -30,12 +30,4 @@ public interface ExternalEquipmentService {
      * @return The user ID of the operator or owner
      */
     Long getOperatorIdByPondId(Long pondId);
-
-    /**
-     * Retrieves the pond ID associated with a specific device.
-     *
-     * @param deviceId The identifier of the device
-     * @return The pond ID associated with the device
-     */
-    Long getPondIdByDeviceId(String deviceId);
 }

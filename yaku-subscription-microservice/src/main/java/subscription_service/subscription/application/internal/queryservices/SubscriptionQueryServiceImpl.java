@@ -1,11 +1,10 @@
 package subscription_service.subscription.application.internal.queryservices;
 
-import org.springframework.stereotype.Service;
-
 import subscription_service.subscription.domain.model.aggregates.Subscription;
 import subscription_service.subscription.domain.model.entities.Plan;
 import subscription_service.subscription.infrastructure.persistence.jpa.repositories.PlanRepository;
 import subscription_service.subscription.infrastructure.persistence.jpa.repositories.SubscriptionRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +18,7 @@ public class SubscriptionQueryServiceImpl implements SubscriptionQueryService {
         this.subscriptionRepository = subscriptionRepository;
         this.planRepository = planRepository;
     }
+
 
     @Override
     public Optional<Subscription> getUserSubscriptionStatus(Long userId) {

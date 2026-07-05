@@ -1,13 +1,11 @@
 package notification_service.shared.interfaces.rest.resources.advice;
 
-
+import notification_service.shared.interfaces.rest.resources.ApiErrorResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
-
-import notification_service.shared.interfaces.rest.resources.ApiErrorResource;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {

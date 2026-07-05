@@ -2,7 +2,6 @@ package com.yaku.gateway.iam.domain.model.entities;
 
 import com.yaku.gateway.iam.domain.model.valueobjects.Roles;
 import com.yaku.gateway.shared.domain.model.entities.AuditableModel;
-
 import jakarta.persistence.*;
 import lombok.Getter;
 

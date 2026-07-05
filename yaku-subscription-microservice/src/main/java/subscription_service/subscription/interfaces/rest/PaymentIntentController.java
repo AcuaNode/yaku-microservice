@@ -1,9 +1,8 @@
 package subscription_service.subscription.interfaces.rest;
 
+import subscription_service.subscription.domain.ports.ExternalPaymentGateway;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import subscription_service.subscription.domain.ports.ExternalPaymentGateway;
 
 import java.util.HashMap;
 import java.util.Map;

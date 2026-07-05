@@ -1,12 +1,12 @@
 package subscription_service.subscription.domain.model.entities;
 
+import subscription_service.shared.domain.model.entities.AuditableModel;
+import subscription_service.subscription.domain.model.valueobjects.Currency;
+import subscription_service.subscription.domain.model.valueobjects.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import subscription_service.shared.domain.model.entities.AuditableModel;
-import subscription_service.subscription.domain.model.valueobjects.Currency;
-import subscription_service.subscription.domain.model.valueobjects.PaymentStatus;
 
 @Entity
 @Getter

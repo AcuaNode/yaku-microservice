@@ -1,15 +1,14 @@
 package com.yaku.gateway.iam.application.internal.eventhandlers;
 
+import com.yaku.gateway.iam.domain.model.entities.Role;
+import com.yaku.gateway.iam.domain.model.valueobjects.Roles;
+import com.yaku.gateway.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.yaku.gateway.iam.domain.model.entities.Role;
-import com.yaku.gateway.iam.domain.model.valueobjects.Roles;
-import com.yaku.gateway.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 
 /**
  * Application Ready Event Handler

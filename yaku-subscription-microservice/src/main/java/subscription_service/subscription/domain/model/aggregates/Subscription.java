@@ -1,15 +1,14 @@
 package subscription_service.subscription.domain.model.aggregates;
 
-
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import subscription_service.shared.domain.model.entities.AuditableModel;
 import subscription_service.subscription.domain.model.entities.Plan;
 import subscription_service.subscription.domain.model.valueobjects.PaymentProvider;
 import subscription_service.subscription.domain.model.valueobjects.SubscriptionPeriod;
 import subscription_service.subscription.domain.model.valueobjects.SubscriptionStatus;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 

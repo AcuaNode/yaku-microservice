@@ -1,11 +1,9 @@
 package notification_service.notification.application.internal.commandservices;
 
 import org.springframework.stereotype.Service;
-
 import notification_service.notification.domain.models.aggregates.DeviceToken;
 import notification_service.notification.domain.models.commands.RegisterDeviceTokenCommand;
 import notification_service.notification.domain.services.DeviceTokenRepository;
-
 
 @Service
 public class RegisterDeviceTokenCommandService {

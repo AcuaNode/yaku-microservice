@@ -7,7 +7,6 @@ import notification_service.notification.application.internal.commandservices.Se
 import notification_service.notification.interfaces.rest.resources.SendNotificationRequestResource;
 import notification_service.notification.interfaces.rest.transform.NotificationResourceMapper;
 
-
 @RestController
 @RequestMapping("/api/v1/webhooks/notifications")
 public class NotificationWebhookController {

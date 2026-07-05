@@ -11,15 +11,15 @@ import telemetry_service.telemetry.infrastructure.persistence.jpa.repositories.S
 import telemetry_service.telemetry.infrastructure.persistence.jpa.repositories.SensorReadingRepository;
 import telemetry_service.telemetry.infrastructure.persistence.jpa.repositories.ThresholdRepository;
 import telemetry_service.telemetry.domain.model.valueobjects.Species;
-import telemetry_service.telemetry.interfaces.events.MqttPublisherConfig.MqttPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import telemetry_service.shared.infrastructure.messaging.mqtt.MqttPublisherConfig.MqttPublisher;
 
 @Service
 public class TelemetryCommandServiceImpl implements TelemetryCommandService {
@@ -31,36 +31,45 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
     private final SensorPondMappingRepository sensorPondMappingRepository;
     private final ExternalEquipmentService externalEquipmentService;
     private final ApplicationEventPublisher eventPublisher;
+    private final io.github.rafaviv.yakubackend.equipment.interfaces.acl.EquipmentContextFacade equipmentContextFacade;
 
     @Autowired(required = false)
     private MqttPublisher mqttPublisher;
 
     public TelemetryCommandServiceImpl(SensorReadingRepository sensorReadingRepository,
-                                       ThresholdRepository thresholdRepository,
-                                       SensorPondMappingRepository sensorPondMappingRepository,
-                                       ExternalEquipmentService externalEquipmentService,
-                                       ApplicationEventPublisher eventPublisher) {
+            ThresholdRepository thresholdRepository,
+            SensorPondMappingRepository sensorPondMappingRepository,
+            ExternalEquipmentService externalEquipmentService,
+            ApplicationEventPublisher eventPublisher,
+            io.github.rafaviv.yakubackend.equipment.interfaces.acl.EquipmentContextFacade equipmentContextFacade) {
         this.sensorReadingRepository = sensorReadingRepository;
         this.thresholdRepository = thresholdRepository;
         this.sensorPondMappingRepository = sensorPondMappingRepository;
         this.externalEquipmentService = externalEquipmentService;
         this.eventPublisher = eventPublisher;
+        this.equipmentContextFacade = equipmentContextFacade;
     }
 
     @Override
     @Transactional
     public void handle(ProcessGroupedTelemetryCommand command) {
-        Long pondId = externalEquipmentService.getPondIdByDeviceId(command.deviceId());
+        // Resolvemos el pondId dinámicamente usando el deviceId
+        Long pondId = equipmentContextFacade.getPondIdByDeviceId(command.deviceId());
 
+        // We will assume the pond is valid. Saving the raw readings for non-null
+        // metrics
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         if (command.temperature() != null) {
-            sensorReadingRepository.save(new SensorReading(pondId, SensorType.TEMPERATURE, new MeasurementValue(command.temperature(), "C"), now));
+            sensorReadingRepository.save(new SensorReading(pondId, SensorType.TEMPERATURE,
+                    new MeasurementValue(command.temperature(), "C"), now));
         }
         if (command.turbidity() != null) {
-            sensorReadingRepository.save(new SensorReading(pondId, SensorType.TURBIDITY, new MeasurementValue(command.turbidity(), "NTU"), now));
+            sensorReadingRepository.save(new SensorReading(pondId, SensorType.TURBIDITY,
+                    new MeasurementValue(command.turbidity(), "NTU"), now));
         }
         if (command.ica() != null) {
-            sensorReadingRepository.save(new SensorReading(pondId, SensorType.ICA, new MeasurementValue(command.ica(), "INDEX"), now));
+            sensorReadingRepository.save(new SensorReading(pondId, SensorType.ICA,
+                    new MeasurementValue(command.ica(), "INDEX"), now));
         }
 
         try {
@@ -114,7 +123,8 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
 
                     // Alerta al Operador (si es distinto al Admin)
                     if (!adminId.equals(operatorId)) {
-                        eventPublisher.publishEvent(new ThresholdBreachedEvent(pondId, operatorId, severity, finalMessage));
+                        eventPublisher
+                                .publishEvent(new ThresholdBreachedEvent(pondId, operatorId, severity, finalMessage));
                     }
                 }
             }, () -> {
@@ -134,8 +144,9 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
 
     @Override
     @Transactional
-    public Long handle(telemetry_service.telemetry.domain.model.commands.ConfigureThresholdCommand command) {
-        var speciesEnum = Species.valueOf(command.species().toUpperCase());
+    public Long handle(
+            telemetry_service.telemetry.domain.model.commands.ConfigureThresholdCommand command) {
+        var speciesEnum = Species.valueOf(command.species());
         var thresholdOptional = thresholdRepository.findBySpecies(speciesEnum);
 
         telemetry_service.telemetry.domain.model.aggregates.Threshold threshold;
@@ -146,8 +157,7 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
                     command.minTemperature(),
                     command.maxTemperature(),
                     command.minTurbidity(),
-                    command.maxTurbidity()
-            );
+                    command.maxTurbidity());
             thresholdRepository.save(threshold);
         } else {
             threshold = new telemetry_service.telemetry.domain.model.aggregates.Threshold(
@@ -155,8 +165,7 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
                     command.minTemperature(),
                     command.maxTemperature(),
                     command.minTurbidity(),
-                    command.maxTurbidity()
-            );
+                    command.maxTurbidity());
             thresholdRepository.save(threshold);
         }
 
@@ -173,41 +182,4 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
 
         return threshold.getId();
     }
-
-    @Override
-    public void executeRemoteCommand(String physicalCode, String command) {
-        if (physicalCode == null || physicalCode.isBlank()) {
-            throw new IllegalArgumentException("Physical code is required");
-        }
-        if (command == null || command.isBlank()) {
-            throw new IllegalArgumentException("Command is required");
-        }
-
-        // physicalCode could be "YAKU-001-B1" or just "YAKU-001"
-        // If it's a sub-device code, extract the deviceId and determine the pump
-        String deviceId;
-        String mqttCommand;
-
-        if (physicalCode.matches(".*-(B1|B2)$")) {
-            deviceId = physicalCode.substring(0, physicalCode.lastIndexOf("-"));
-            String pumpCode = physicalCode.substring(physicalCode.lastIndexOf("-") + 1);
-            mqttCommand = pumpCode.equals("B1") ? "PUMP1_ON" : "PUMP2_ON";
-        } else {
-            deviceId = physicalCode;
-            mqttCommand = command;
-        }
-
-        if (mqttPublisher != null) {
-            try {
-                mqttPublisher.publishToMqtt("yaku/command/devices/" + deviceId, mqttCommand);
-                System.out.println("✅ Comando MQTT publicado a: yaku/command/devices/" + deviceId + " -> " + mqttCommand);
-            } catch (Exception e) {
-                System.err.println("❌ Failed to publish MQTT command: " + e.getMessage());
-                throw new RuntimeException("Error publicando comando MQTT", e);
-            }
-        } else {
-            System.err.println("❌ MQTT Publisher is NULL! No se pudo publicar.");
-            throw new IllegalStateException("MQTT Publisher no está disponible");
-        }
-    }
-}
+}

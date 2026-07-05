@@ -10,9 +10,11 @@ import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.re
 import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.repositories.PondRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
+import java.util.List;
+import java.util.ArrayList;
+import io.github.rafaviv.yakubackend.shared.infrastructure.messaging.mqtt.MqttPublisherConfig.MqttPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class EquipmentCommandServiceImpl implements EquipmentCommandService {
@@ -20,6 +22,9 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
     private final EquipmentRepository equipmentRepository;
     private final PondRepository pondRepository;
     private final SpringDomainEventPublisher eventPublisher;
+
+    @Autowired(required = false)
+    private MqttPublisher mqttPublisher;
 
     public EquipmentCommandServiceImpl(EquipmentRepository equipmentRepository, PondRepository pondRepository,
             SpringDomainEventPublisher eventPublisher) {
@@ -32,14 +37,14 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
     public Optional<Equipment> registerEquipment(EquipmentType type, String name, String physicalCode, Long farmId) {
         Equipment equipment = new Equipment(type, name, physicalCode, farmId);
         Equipment savedEquipment = equipmentRepository.save(equipment);
-        
+
         try {
             eventPublisher.publish(new EquipmentRegistrationRequested(savedEquipment.getId()));
         } catch (Exception e) {
             // Se asume que si el evento lanza una excepción es porque el plan no lo permite
             throw new RuntimeException("El plan no permite más agregaciones", e);
         }
-        
+
         return Optional.of(savedEquipment);
     }
 
@@ -75,10 +80,8 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
         equipment.linkToPond(pond.getId());
         Equipment savedEquipment = equipmentRepository.save(equipment);
 
-        String speciesStr = pond.getSpecies().name();
-
         if (savedEquipment.getType() == EquipmentType.SENSOR) {
-            eventPublisher.publish(new SensorLinkedToPondEvent(savedEquipment.getId(), pond.getId(), speciesStr));
+            eventPublisher.publish(new SensorLinkedToPondEvent(savedEquipment.getId(), pond.getId()));
         }
 
         // Check if it's an IoT device piece and link the rest automatically
@@ -93,9 +96,18 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
                         eq.linkToPond(pond.getId());
                         equipmentRepository.save(eq);
                         if (eq.getType() == EquipmentType.SENSOR) {
-                            eventPublisher.publish(new SensorLinkedToPondEvent(eq.getId(), pond.getId(), speciesStr));
+                            eventPublisher.publish(new SensorLinkedToPondEvent(eq.getId(), pond.getId()));
                         }
                     }
+                }
+            }
+            // Publicar el routing a MQTT
+            if (mqttPublisher != null) {
+                try {
+                    String speciesStr = pond.getSpecies().name();
+                    mqttPublisher.publishToMqtt("yaku/config/devices/" + deviceId, speciesStr);
+                } catch (Exception e) {
+                    System.err.println("Failed to publish MQTT routing: " + e.getMessage());
                 }
             }
         }
@@ -109,5 +121,36 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
             throw new IllegalArgumentException("Equipment not found with id: " + equipmentId);
         }
         equipmentRepository.deleteById(equipmentId);
+    }
+
+    @Override
+    public void executeRemoteCommand(Long equipmentId) {
+        var equipment = equipmentRepository.findById(equipmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Equipment not found"));
+
+        if (equipment.getType() != EquipmentType.ACTUATOR) {
+            throw new IllegalArgumentException("Equipment is not an actuator");
+        }
+
+        String physicalCode = equipment.getPhysicalCode();
+        if (physicalCode == null || !physicalCode.matches(".*-(B1|B2)$")) {
+            throw new IllegalArgumentException("Equipment physical code does not support remote activation");
+        }
+
+        String deviceId = physicalCode.substring(0, physicalCode.lastIndexOf("-"));
+        String pumpCode = physicalCode.substring(physicalCode.lastIndexOf("-") + 1);
+        String command = pumpCode.equals("B1") ? "PUMP1_ON" : "PUMP2_ON";
+
+        if (mqttPublisher != null) {
+            try {
+                mqttPublisher.publishToMqtt("yaku/command/devices/" + deviceId, command);
+                System.out.println("✅ Comando MQTT publicado a: yaku/command/devices/" + deviceId + " -> " + command);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to publish MQTT command: " + e.getMessage());
+            }
+        } else {
+            System.err.println("❌ MQTT Publisher is NULL! No se pudo publicar.");
+            throw new IllegalArgumentException("Error interno: MQTT Publisher no está disponible en el backend");
+        }
     }
 }

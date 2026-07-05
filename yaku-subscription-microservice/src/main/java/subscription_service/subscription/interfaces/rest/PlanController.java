@@ -1,14 +1,13 @@
 package subscription_service.subscription.interfaces.rest;
 
+import subscription_service.subscription.application.internal.queryservices.SubscriptionQueryService;
+import subscription_service.subscription.interfaces.rest.resources.PlanResource;
+import subscription_service.subscription.interfaces.rest.transform.PlanResourceFromEntityAssembler;
+import subscription_service.subscription.domain.model.entities.Plan;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import subscription_service.subscription.application.internal.queryservices.SubscriptionQueryService;
-import subscription_service.subscription.domain.model.entities.Plan;
-import subscription_service.subscription.interfaces.rest.resources.PlanResource;
-import subscription_service.subscription.interfaces.rest.transform.PlanResourceFromEntityAssembler;
 
 import java.util.List;
 import java.util.stream.Collectors;

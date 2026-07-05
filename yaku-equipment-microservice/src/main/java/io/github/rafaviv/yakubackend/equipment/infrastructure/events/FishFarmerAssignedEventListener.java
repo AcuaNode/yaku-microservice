@@ -1,9 +1,8 @@
 package io.github.rafaviv.yakubackend.equipment.infrastructure.events;
 
+import io.github.rafaviv.yakubackend.equipment.domain.model.events.FishFarmerAssignedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import io.github.rafaviv.yakubackend.equipment.domain.model.events.FishFarmerAssignedEvent;
 
 @Component
 public class FishFarmerAssignedEventListener {
