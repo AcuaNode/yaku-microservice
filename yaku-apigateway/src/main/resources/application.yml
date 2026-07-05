@@ -9,6 +9,7 @@ gateway:
     - /api/v1/plans
     - /api/v1/users/signup
     - /api/v1/users/signin
+    - /api/v1/telemetry/manual-ingest
     - /api/v1/users/available-roles
     - /v3/api-docs
     - /swagger-ui
@@ -33,31 +34,33 @@ spring:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
   cloud:
     gateway:
-      routes:
+      mvc:
+        routes:
 
-        # Rutas hacia el microservicio de Equipment
-        - id: equipment-service
-          uri: ${EQUIPMENT_SERVICE_URL:http://equipment-service:8080}
-          predicates:
-            - Path=/api/v1/farms/**, /api/v1/ponds/**, /api/v1/equipment/**
+          # Rutas hacia el microservicio de Equipment
+          - id: equipment-service
+            uri: ${EQUIPMENT_SERVICE_URL:http://equipment-service:8080}
+            predicates:
+              - Path=/api/v1/farms/**, /api/v1/ponds/**, /api/v1/equipment/**
 
-        # Rutas hacia el microservicio de Notification
-        - id: notification-service
-          uri: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
-          predicates:
-            - Path=/api/v1/users/*/notifications, /api/v1/users/*/notifications/**, /api/v1/users/*/device-tokens, /api/v1/users/*/device-tokens/**, /api/v1/webhooks/notifications, /api/v1/webhooks/notifications/**
+          # Rutas hacia el microservicio de Notification
+          - id: notification-service
+            uri: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
+            predicates:
+              - Path=/api/v1/users/*/notifications, /api/v1/users/*/notifications/**, /api/v1/users/*/device-tokens, /api/v1/users/*/device-tokens/**, /api/v1/webhooks/notifications, /api/v1/webhooks/notifications/**
 
-        # Rutas hacia el microservicio de Subscription
-        - id: subscription-service
-          uri: ${SUBSCRIPTION_SERVICE_URL:http://subscription-service:8080}
-          predicates:
-            - Path=/api/v1/subscriptions/**, /api/v1/plans/**, /api/v1/payments/**, /api/v1/webhooks/stripe/**
+          # Rutas hacia el microservicio de Subscription
+          - id: subscription-service
+            uri: ${SUBSCRIPTION_SERVICE_URL:http://subscription-service:8080}
+            predicates:
+              - Path=/api/v1/subscriptions/**, /api/v1/plans/**, /api/v1/payments/**, /api/v1/webhooks/stripe/**
 
-        # Rutas hacia el microservicio de Telemetry
-        - id: telemetry-service
-          uri: ${TELEMETRY_SERVICE_URL:http://telemetry-service:8080}
-          predicates:
-            - Path=/api/v1/telemetry/**
+          # Rutas hacia el microservicio de Telemetry
+          - id: telemetry-service
+            uri: ${TELEMETRY_SERVICE_URL:http://telemetry-service:8080}
+            predicates:
+              - Path=/api/v1/telemetry/**
+
 authorization:
   jwt:
     secret: WriteHereYourSecretStringForTokenSigningCredentials

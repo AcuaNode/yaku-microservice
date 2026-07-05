@@ -100,7 +100,8 @@ public class WebSecurityConfiguration {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/swagger-resources/**",
-                                "/webjars/**")
+                                "/webjars/**",
+                                "/error")
                         .permitAll()
                         .anyRequest().authenticated())
                 // 🔑 Autenticación personalizada

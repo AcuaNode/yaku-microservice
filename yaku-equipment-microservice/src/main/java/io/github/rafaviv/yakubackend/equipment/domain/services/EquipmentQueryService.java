@@ -12,4 +12,5 @@ public interface EquipmentQueryService {
     List<Equipment> getAllEquipment();
     Optional<Equipment> handle(GetEquipmentByIdQuery query);
     List<Equipment> handle(GetEquipmentByFarmIdQuery query);
+    Optional<Equipment> handle(io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByPhysicalCodeQuery query);
 }

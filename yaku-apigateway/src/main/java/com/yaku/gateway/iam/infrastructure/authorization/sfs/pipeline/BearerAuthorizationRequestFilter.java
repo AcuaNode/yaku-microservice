@@ -53,7 +53,7 @@ public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
         }
 
         // 2️⃣ Endpoints públicos (sin token requerido)
-        if (path.contains("/api/v1/users/signup") || path.contains("/api/v1/users/signin")) {
+        if (path.contains("/api/v1/users/signup") || path.contains("/api/v1/users/signin") || path.contains("/api/v1/telemetry/manual-ingest")) {
             System.out.println("🟢 Ruta pública detectada (" + path + "), omitiendo validación JWT");
             filterChain.doFilter(request, response);
             return;

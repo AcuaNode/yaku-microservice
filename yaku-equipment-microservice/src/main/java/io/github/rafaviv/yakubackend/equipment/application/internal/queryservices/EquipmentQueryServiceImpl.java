@@ -34,4 +34,9 @@ public class EquipmentQueryServiceImpl implements EquipmentQueryService {
     public List<Equipment> handle(GetEquipmentByFarmIdQuery query) {
         return equipmentRepository.findByFarmId(query.farmId());
     }
+
+    @Override
+    public Optional<Equipment> handle(io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByPhysicalCodeQuery query) {
+        return equipmentRepository.findByPhysicalCode(query.physicalCode());
+    }
 }

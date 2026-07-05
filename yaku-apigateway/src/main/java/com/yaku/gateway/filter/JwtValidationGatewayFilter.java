@@ -31,7 +31,7 @@ public class JwtValidationGatewayFilter extends OncePerRequestFilter {
 
     public JwtValidationGatewayFilter(
             JwtUtil jwtUtil,
-            @Value("${gateway.public-paths:/api/v1/users/signup,/api/v1/users/signin,/api/v1/users/available-roles,/v3/api-docs,/swagger-ui,/swagger-ui.html,/swagger-resources,/webjars,/error,/actuator}") List<String> publicPaths) {
+            @Value("${gateway.public-paths:/api/v1/users/signup,/api/v1/users/signin,/api/v1/telemetry/manual-ingest,/api/v1/users/available-roles,/v3/api-docs,/swagger-ui,/swagger-ui.html,/swagger-resources,/webjars,/error,/actuator}") List<String> publicPaths) {
         this.jwtUtil = jwtUtil;
         this.publicPaths = publicPaths;
     }

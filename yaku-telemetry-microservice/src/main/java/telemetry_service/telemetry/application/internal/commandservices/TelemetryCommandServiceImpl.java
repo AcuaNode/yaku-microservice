@@ -31,7 +31,6 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
     private final SensorPondMappingRepository sensorPondMappingRepository;
     private final ExternalEquipmentService externalEquipmentService;
     private final ApplicationEventPublisher eventPublisher;
-    private final io.github.rafaviv.yakubackend.equipment.interfaces.acl.EquipmentContextFacade equipmentContextFacade;
 
     @Autowired(required = false)
     private MqttPublisher mqttPublisher;
@@ -40,21 +39,19 @@ public class TelemetryCommandServiceImpl implements TelemetryCommandService {
             ThresholdRepository thresholdRepository,
             SensorPondMappingRepository sensorPondMappingRepository,
             ExternalEquipmentService externalEquipmentService,
-            ApplicationEventPublisher eventPublisher,
-            io.github.rafaviv.yakubackend.equipment.interfaces.acl.EquipmentContextFacade equipmentContextFacade) {
+            ApplicationEventPublisher eventPublisher) {
         this.sensorReadingRepository = sensorReadingRepository;
         this.thresholdRepository = thresholdRepository;
         this.sensorPondMappingRepository = sensorPondMappingRepository;
         this.externalEquipmentService = externalEquipmentService;
         this.eventPublisher = eventPublisher;
-        this.equipmentContextFacade = equipmentContextFacade;
     }
 
     @Override
     @Transactional
     public void handle(ProcessGroupedTelemetryCommand command) {
         // Resolvemos el pondId dinámicamente usando el deviceId
-        Long pondId = equipmentContextFacade.getPondIdByDeviceId(command.deviceId());
+        Long pondId = externalEquipmentService.getPondIdByDeviceId(command.deviceId());
 
         // We will assume the pond is valid. Saving the raw readings for non-null
         // metrics

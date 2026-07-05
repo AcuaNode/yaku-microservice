@@ -9,7 +9,7 @@ import java.util.Map;
 public class ExternalEquipmentServiceImpl implements ExternalEquipmentService {
 
     private final RestTemplate restTemplate;
-    private final String equipmentServiceUrl = "http://localhost:8081/api/v1";
+    private final String equipmentServiceUrl = System.getenv().getOrDefault("EQUIPMENT_SERVICE_URL", "http://equipment-service:8080") + "/api/v1";
 
     public ExternalEquipmentServiceImpl() {
         this.restTemplate = new RestTemplate();

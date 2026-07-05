@@ -81,6 +81,16 @@ public class EquipmentController {
         return ResponseEntity.ok(equipment.get());
     }
 
+    @GetMapping("/physical-code/{code}")
+    public ResponseEntity<?> getEquipmentByPhysicalCode(@PathVariable String code) {
+        Optional<io.github.rafaviv.yakubackend.equipment.domain.model.aggregates.Equipment> equipment = equipmentQueryService
+                .handle(new io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByPhysicalCodeQuery(code));
+        if (equipment.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Equipment not found with code: " + code);
+        }
+        return ResponseEntity.ok(equipment.get());
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEquipment(@PathVariable Long id) {
         try {
