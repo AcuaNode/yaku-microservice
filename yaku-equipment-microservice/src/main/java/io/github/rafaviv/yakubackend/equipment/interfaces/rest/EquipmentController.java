@@ -5,6 +5,7 @@ import io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipment
 import io.github.rafaviv.yakubackend.equipment.domain.model.valueobjects.EquipmentType;
 import io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentCommandService;
 import io.github.rafaviv.yakubackend.equipment.interfaces.rest.transform.RegisterEquipmentResource;
+import io.github.rafaviv.yakubackend.equipment.interfaces.rest.transform.RegisterIoTDeviceResource;
 
 import java.util.Optional;
 
@@ -34,6 +35,20 @@ public class EquipmentController {
             return ResponseEntity.status(HttpStatus.CREATED).body(equipment.get());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/iot-device")
+    public ResponseEntity<?> registerIoTDevice(@RequestBody RegisterIoTDeviceResource resource) {
+        try {
+            var equipments = equipmentCommandService.registerIoTDevice(resource.deviceId(), resource.deviceName(),
+                    resource.farmId());
+            if (equipments.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(equipments);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
@@ -81,4 +96,4 @@ public class EquipmentController {
             return ResponseEntity.notFound().build();
         }
     }
-}
+}

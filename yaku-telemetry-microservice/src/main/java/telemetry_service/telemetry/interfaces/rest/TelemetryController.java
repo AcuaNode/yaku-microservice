@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/telemetry")
@@ -54,4 +55,17 @@ public class TelemetryController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-}
+
+    @PostMapping("/devices/{physicalCode}/command")
+    public ResponseEntity<?> executeRemoteCommand(@PathVariable String physicalCode, @RequestBody(required = false) Map<String, String> body) {
+        try {
+            String command = (body != null && body.containsKey("command")) ? body.get("command") : "PUMP1_ON";
+            telemetryCommandService.executeRemoteCommand(physicalCode, command);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error executing command: " + e.getMessage());
+        }
+    }
+}

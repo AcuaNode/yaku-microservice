@@ -6,11 +6,12 @@ import io.github.rafaviv.yakubackend.equipment.domain.model.events.SensorLinkedT
 import io.github.rafaviv.yakubackend.equipment.domain.model.valueobjects.EquipmentType;
 import io.github.rafaviv.yakubackend.equipment.domain.services.EquipmentCommandService;
 import io.github.rafaviv.yakubackend.equipment.infrastructure.events.SpringDomainEventPublisher;
-import io.github.rafaviv.yakubackend.equipment.infrastructure.events.kafka.KafkaDomainEventPublisher;
 import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.repositories.EquipmentRepository;
 import io.github.rafaviv.yakubackend.equipment.infrastructure.persistence.jpa.repositories.PondRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -20,7 +21,8 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
     private final PondRepository pondRepository;
     private final SpringDomainEventPublisher eventPublisher;
 
-    public EquipmentCommandServiceImpl(EquipmentRepository equipmentRepository, PondRepository pondRepository, SpringDomainEventPublisher eventPublisher) {
+    public EquipmentCommandServiceImpl(EquipmentRepository equipmentRepository, PondRepository pondRepository,
+            SpringDomainEventPublisher eventPublisher) {
         this.equipmentRepository = equipmentRepository;
         this.pondRepository = pondRepository;
         this.eventPublisher = eventPublisher;
@@ -42,19 +44,62 @@ public class EquipmentCommandServiceImpl implements EquipmentCommandService {
     }
 
     @Override
+    public List<Equipment> registerIoTDevice(String deviceId, String deviceName, Long farmId) {
+        List<Equipment> createdEquipments = new ArrayList<>();
+
+        // 1. Bomba 1
+        createdEquipments.add(
+                registerEquipment(EquipmentType.ACTUATOR, deviceName + " - Bomba 1", deviceId + "-B1", farmId).get());
+        // 2. Bomba 2
+        createdEquipments.add(
+                registerEquipment(EquipmentType.ACTUATOR, deviceName + " - Bomba 2", deviceId + "-B2", farmId).get());
+        // 3. Sensor de Temperatura
+        createdEquipments
+                .add(registerEquipment(EquipmentType.SENSOR, deviceName + " - Sensor Temp", deviceId + "-TEMP", farmId)
+                        .get());
+        // 4. Sensor de Turbidez
+        createdEquipments
+                .add(registerEquipment(EquipmentType.SENSOR, deviceName + " - Sensor Turb", deviceId + "-TURB", farmId)
+                        .get());
+
+        return createdEquipments;
+    }
+
+    @Override
     public Optional<Equipment> linkEquipmentToPond(Long equipmentId, Long pondId) {
         var equipment = equipmentRepository.findById(equipmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Equipment not found"));
         var pond = pondRepository.findById(pondId)
                 .orElseThrow(() -> new IllegalArgumentException("Pond not found"));
-                
+
         equipment.linkToPond(pond.getId());
         Equipment savedEquipment = equipmentRepository.save(equipment);
-        
+
+        String speciesStr = pond.getSpecies().name();
+
         if (savedEquipment.getType() == EquipmentType.SENSOR) {
-            eventPublisher.publish(new SensorLinkedToPondEvent(savedEquipment.getId(), pond.getId()));
+            eventPublisher.publish(new SensorLinkedToPondEvent(savedEquipment.getId(), pond.getId(), speciesStr));
         }
-        
+
+        // Check if it's an IoT device piece and link the rest automatically
+        String physicalCode = savedEquipment.getPhysicalCode();
+        if (physicalCode != null && physicalCode.matches(".*-(B1|B2|TEMP|TURB)$")) {
+            String deviceId = physicalCode.substring(0, physicalCode.lastIndexOf("-"));
+            List<Equipment> allEquipments = equipmentRepository.findAll();
+            for (Equipment eq : allEquipments) {
+                if (eq.getPhysicalCode() != null && eq.getPhysicalCode().startsWith(deviceId + "-")
+                        && !eq.getId().equals(savedEquipment.getId())) {
+                    if (eq.getPondId() == null || !eq.getPondId().equals(pond.getId())) {
+                        eq.linkToPond(pond.getId());
+                        equipmentRepository.save(eq);
+                        if (eq.getType() == EquipmentType.SENSOR) {
+                            eventPublisher.publish(new SensorLinkedToPondEvent(eq.getId(), pond.getId(), speciesStr));
+                        }
+                    }
+                }
+            }
+        }
+
         return Optional.of(savedEquipment);
     }
 

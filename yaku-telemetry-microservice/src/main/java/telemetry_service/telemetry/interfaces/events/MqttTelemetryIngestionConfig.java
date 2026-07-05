@@ -10,6 +10,7 @@ import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.core.MessageProducer;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -30,22 +31,16 @@ public class MqttTelemetryIngestionConfig {
         return new DirectChannel();
     }
 
-    // This Bean is commented out to avoid connection errors if the MQTT Broker is
-    // not running.
-    // Uncomment and configure with the actual broker URL and topics.
-    /*
-     * @Bean
-     * public MessageProducer inbound() {
-     * MqttPahoMessageDrivenChannelAdapter adapter =
-     * new MqttPahoMessageDrivenChannelAdapter("tcp://localhost:1883",
-     * "yaku-backend-client", "telemetry/ponds/#");
-     * adapter.setCompletionTimeout(5000);
-     * adapter.setConverter(new DefaultPahoMessageConverter());
-     * adapter.setQos(1);
-     * adapter.setOutputChannel(mqttInputChannel());
-     * return adapter;
-     * }
-     */
+    @Bean
+    public MessageProducer inbound(MqttPahoClientFactory mqttClientFactory) {
+        MqttPahoMessageDrivenChannelAdapter adapter =
+                new MqttPahoMessageDrivenChannelAdapter("yaku-telemetry-subscriber", mqttClientFactory, "yaku/telemetria/pond/+");
+        adapter.setCompletionTimeout(5000);
+        adapter.setConverter(new DefaultPahoMessageConverter());
+        adapter.setQos(1);
+        adapter.setOutputChannel(mqttInputChannel());
+        return adapter;
+    }
 
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel")
@@ -55,14 +50,21 @@ public class MqttTelemetryIngestionConfig {
             public void handleMessage(Message<?> message) {
                 try {
                     String payload = (String) message.getPayload();
-                    // Assuming the payload is a JSON matching ProcessGroupedTelemetryCommand
-                    ProcessGroupedTelemetryCommand command = objectMapper.readValue(payload,
-                            ProcessGroupedTelemetryCommand.class);
+                    // The Arduino sends: {deviceId, temperatura, turbidez, ica, estado}
+                    // We map temperatura->temperature, turbidez->turbidity for the command
+                    var jsonNode = objectMapper.readTree(payload);
+                    ProcessGroupedTelemetryCommand command = new ProcessGroupedTelemetryCommand(
+                            jsonNode.has("deviceId") ? jsonNode.get("deviceId").asText() : null,
+                            jsonNode.has("temperatura") ? jsonNode.get("temperatura").asDouble() : (jsonNode.has("temperature") ? jsonNode.get("temperature").asDouble() : null),
+                            jsonNode.has("turbidez") ? jsonNode.get("turbidez").asDouble() : (jsonNode.has("turbidity") ? jsonNode.get("turbidity").asDouble() : null),
+                            jsonNode.has("ica") ? jsonNode.get("ica").asDouble() : null
+                    );
                     telemetryCommandService.handle(command);
+                    System.out.println("📥 [MQTT] Telemetría procesada para dispositivo: " + command.deviceId());
                 } catch (Exception e) {
                     System.err.println("Error processing MQTT message: " + e.getMessage());
                 }
             }
         };
     }
-}
+}
