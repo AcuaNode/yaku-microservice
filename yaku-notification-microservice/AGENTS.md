@@ -36,8 +36,9 @@ Use the Maven wrapper (Maven 3.9.16):
 - `Notification` and `DeviceToken` are domain aggregates (plain Java objects). JPA entities are `NotificationEntity` and `DeviceTokenEntity` in `infrastructure/persistance/jpa`.
 - FCM push notifications are mocked: `FcmClient` implements `PushNotificationService` and only prints to stdout.
 - Kafka event publishing: `KafkaDomainEventPublisher` publishes events to Kafka topics using `KafkaTemplate`.
+- Kafka event consumption: `TelemetryAlertsKafkaConsumer` consumes threshold alerts from the `telemetry.alerts` Kafka topic.
 - OpenAPI/Swagger is auto-configured via `springdoc-openapi-starter-webmvc-ui` 2.8.8; config bean reads from `documentation.application.*` properties populated by Maven resource filtering.
-- Gateway auth: Gateway-facing controllers read `X-User-Id` via `@RequestHeader(value = "X-User-Id", required = false)` and validate it against the `@PathVariable Long userId`; mismatches (or missing headers) return 403. The `required = false` is intentional — it lets the controller return 403 instead of Spring throwing a 400 for missing headers. The webhook endpoint (`/api/v1/webhooks/notifications`) is service-to-service and does not use gateway headers.
+- Gateway auth: Gateway-facing controllers read `X-User-Id` via `@RequestHeader(value = "X-User-Id", required = false)` and validate it against the `@PathVariable Long userId`; mismatches (or missing headers) return 403. The `required = false` is intentional — it lets the controller return 403 instead of Spring throwing a 400 for missing headers.
 
 ## Repo-specific conventions
 - Lombok is used (`@Getter`, `@Setter`) and must be registered as an annotation processor (already configured in `pom.xml`).
