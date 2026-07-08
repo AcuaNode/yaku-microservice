@@ -37,6 +37,7 @@ public class EquipmentQueryServiceImpl implements EquipmentQueryService {
 
     @Override
     public Optional<Equipment> handle(io.github.rafaviv.yakubackend.equipment.domain.model.queries.GetEquipmentByPhysicalCodeQuery query) {
-        return equipmentRepository.findByPhysicalCode(query.physicalCode());
+        return equipmentRepository.findByPhysicalCode(query.physicalCode())
+                .or(() -> equipmentRepository.findByPhysicalCode(query.physicalCode() + "-TEMP"));
     }
 }
